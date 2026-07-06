@@ -6,6 +6,20 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		0EAEB9B42FF9865E00BA711A /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEB9B32FF9865E00BA711A /* GRDB */; };
+		0EAEB9E12FFAA29A00BA711A /* PipelineRunner in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEB9E02FFAA29A00BA711A /* PipelineRunner */; };
+		0EAEB9E92FFAA2C500BA711A /* PCMUDPSender in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0EAEB9E22FFAA2C400BA711A /* PCMUDPSender */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		0EAEB9EA2FFAA2C500BA711A /* PCMSpeechSynth in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0EAEB9E32FFAA2C400BA711A /* PCMSpeechSynth */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		0EAEB9EB2FFAA2C500BA711A /* PCMPassthrough in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0EAEB9E42FFAA2C500BA711A /* PCMPassthrough */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		0EAEB9EC2FFAA2C500BA711A /* AudioInputCapture in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0EAEB9E52FFAA2C500BA711A /* AudioInputCapture */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		0EAEB9ED2FFAA2C500BA711A /* AUProcessor in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0EAEB9E62FFAA2C500BA711A /* AUProcessor */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		0EAEB9EE2FFAA2C500BA711A /* PCMUDPReceiver in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0EAEB9E72FFAA2C500BA711A /* PCMUDPReceiver */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		0EAEB9EF2FFAA2C500BA711A /* PCMMixer in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0EAEB9E82FFAA2C500BA711A /* PCMMixer */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		0EAEBA4E2FFAB43500BA711A /* PipelineRunner in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEBA4D2FFAB43500BA711A /* PipelineRunner */; };
+		0EAEBA512FFAB49C00BA711A /* PipelineRunner in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEBA502FFAB49C00BA711A /* PipelineRunner */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		0EAEB95C2FF95D2700BA711A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -23,10 +37,36 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		0EAEB9B62FF9882400BA711A /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Contents/Helpers;
+			dstSubfolderSpec = 1;
+			files = (
+				0EAEB9E92FFAA2C500BA711A /* PCMUDPSender in CopyFiles */,
+				0EAEB9EA2FFAA2C500BA711A /* PCMSpeechSynth in CopyFiles */,
+				0EAEB9EB2FFAA2C500BA711A /* PCMPassthrough in CopyFiles */,
+				0EAEB9EC2FFAA2C500BA711A /* AudioInputCapture in CopyFiles */,
+				0EAEB9ED2FFAA2C500BA711A /* AUProcessor in CopyFiles */,
+				0EAEB9EE2FFAA2C500BA711A /* PCMUDPReceiver in CopyFiles */,
+				0EAEB9EF2FFAA2C500BA711A /* PCMMixer in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		0EAEB94E2FF95D2500BA711A /* ControlBooth.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ControlBooth.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0EAEB95B2FF95D2700BA711A /* ControlBoothTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ControlBoothTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0EAEB9652FF95D2700BA711A /* ControlBoothUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ControlBoothUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		0EAEB9E22FFAA2C400BA711A /* PCMUDPSender */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = PCMUDPSender; path = "../PipelineHelpers/.build/arm64-apple-macosx/release/PCMUDPSender"; sourceTree = "<group>"; };
+		0EAEB9E32FFAA2C400BA711A /* PCMSpeechSynth */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = PCMSpeechSynth; path = "../PipelineHelpers/.build/arm64-apple-macosx/release/PCMSpeechSynth"; sourceTree = "<group>"; };
+		0EAEB9E42FFAA2C500BA711A /* PCMPassthrough */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = PCMPassthrough; path = "../PipelineHelpers/.build/arm64-apple-macosx/release/PCMPassthrough"; sourceTree = "<group>"; };
+		0EAEB9E52FFAA2C500BA711A /* AudioInputCapture */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = AudioInputCapture; path = "../PipelineHelpers/.build/arm64-apple-macosx/release/AudioInputCapture"; sourceTree = "<group>"; };
+		0EAEB9E62FFAA2C500BA711A /* AUProcessor */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = AUProcessor; path = "../PipelineHelpers/.build/arm64-apple-macosx/release/AUProcessor"; sourceTree = "<group>"; };
+		0EAEB9E72FFAA2C500BA711A /* PCMUDPReceiver */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = PCMUDPReceiver; path = "../PipelineHelpers/.build/arm64-apple-macosx/release/PCMUDPReceiver"; sourceTree = "<group>"; };
+		0EAEB9E82FFAA2C500BA711A /* PCMMixer */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = PCMMixer; path = "../PipelineHelpers/.build/arm64-apple-macosx/release/PCMMixer"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -52,6 +92,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0EAEBA4E2FFAB43500BA711A /* PipelineRunner in Frameworks */,
+				0EAEB9E12FFAA29A00BA711A /* PipelineRunner in Frameworks */,
+				0EAEBA512FFAB49C00BA711A /* PipelineRunner in Frameworks */,
+				0EAEB9B42FF9865E00BA711A /* GRDB in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -75,9 +119,17 @@
 		0EAEB9452FF95D2500BA711A = {
 			isa = PBXGroup;
 			children = (
+				0EAEB9E52FFAA2C500BA711A /* AudioInputCapture */,
+				0EAEB9E62FFAA2C500BA711A /* AUProcessor */,
+				0EAEB9E82FFAA2C500BA711A /* PCMMixer */,
+				0EAEB9E42FFAA2C500BA711A /* PCMPassthrough */,
+				0EAEB9E32FFAA2C400BA711A /* PCMSpeechSynth */,
+				0EAEB9E72FFAA2C500BA711A /* PCMUDPReceiver */,
+				0EAEB9E22FFAA2C400BA711A /* PCMUDPSender */,
 				0EAEB9502FF95D2500BA711A /* ControlBooth */,
 				0EAEB95E2FF95D2700BA711A /* ControlBoothTests */,
 				0EAEB9682FF95D2700BA711A /* ControlBoothUITests */,
+				0EAEB9B72FF98D0200BA711A /* Frameworks */,
 				0EAEB94F2FF95D2500BA711A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -92,6 +144,13 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		0EAEB9B72FF98D0200BA711A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -102,6 +161,7 @@
 				0EAEB94A2FF95D2500BA711A /* Sources */,
 				0EAEB94B2FF95D2500BA711A /* Frameworks */,
 				0EAEB94C2FF95D2500BA711A /* Resources */,
+				0EAEB9B62FF9882400BA711A /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -112,6 +172,10 @@
 			);
 			name = ControlBooth;
 			packageProductDependencies = (
+				0EAEB9B32FF9865E00BA711A /* GRDB */,
+				0EAEB9E02FFAA29A00BA711A /* PipelineRunner */,
+				0EAEBA4D2FFAB43500BA711A /* PipelineRunner */,
+				0EAEBA502FFAB49C00BA711A /* PipelineRunner */,
 			);
 			productName = ControlBooth;
 			productReference = 0EAEB94E2FF95D2500BA711A /* ControlBooth.app */;
@@ -195,6 +259,10 @@
 			);
 			mainGroup = 0EAEB9452FF95D2500BA711A;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				0EAEB9B22FF9865E00BA711A /* XCRemoteSwiftPackageReference "GRDB" */,
+				0EAEBA4F2FFAB49C00BA711A /* XCLocalSwiftPackageReference "../PipelineHelpers" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0EAEB94F2FF95D2500BA711A /* Products */;
 			projectDirPath = "";
@@ -394,15 +462,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = ControlBooth.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = MMFBWVS455;
-				ENABLE_APP_SANDBOX = YES;
+				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "ControlBooth-Info.plist";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -426,15 +495,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = ControlBooth.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = MMFBWVS455;
-				ENABLE_APP_SANDBOX = YES;
+				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "ControlBooth-Info.plist";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -573,6 +643,44 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		0EAEBA4F2FFAB49C00BA711A /* XCLocalSwiftPackageReference "../PipelineHelpers" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../PipelineHelpers;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		0EAEB9B22FF9865E00BA711A /* XCRemoteSwiftPackageReference "GRDB" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDB.swift";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0EAEB9B32FF9865E00BA711A /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0EAEB9B22FF9865E00BA711A /* XCRemoteSwiftPackageReference "GRDB" */;
+			productName = GRDB;
+		};
+		0EAEB9E02FFAA29A00BA711A /* PipelineRunner */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PipelineRunner;
+		};
+		0EAEBA4D2FFAB43500BA711A /* PipelineRunner */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PipelineRunner;
+		};
+		0EAEBA502FFAB49C00BA711A /* PipelineRunner */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PipelineRunner;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 0EAEB9462FF95D2500BA711A /* Project object */;
 }

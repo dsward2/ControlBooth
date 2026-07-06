@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE dictionary SYSTEM "file://localhost/System/Library/DTDs/sdef.dtd">
+<dictionary title="ControlBooth Terminology">
+    <suite name="ControlBooth Suite" code="CBth"
+           description="Control ControlBooth's process pipelines.">
+
+        <command name="start pipeline" code="CBthStrt"
+                 description="Start the pipeline with the given name.">
+            <cocoa class="StartPipelineCommand"/>
+            <access-group identifier="com.dsward.ControlBooth.pipelines"/>
+            <direct-parameter type="text" description="The name of the pipeline to start."/>
+        </command>
+
+        <command name="stop pipeline" code="CBthStop"
+                 description="Stop the running pipeline with the given name.">
+            <cocoa class="StopPipelineCommand"/>
+            <access-group identifier="com.dsward.ControlBooth.pipelines"/>
+            <direct-parameter type="text" description="The name of the pipeline to stop."/>
+        </command>
+
+        <command name="stop all pipelines" code="CBthStpA"
+                 description="Stop every running pipeline.">
+            <cocoa class="StopAllPipelinesCommand"/>
+            <access-group identifier="com.dsward.ControlBooth.pipelines"/>
+        </command>
+
+        <command name="list pipelines" code="CBthList"
+                 description="The names of all saved pipelines.">
+            <cocoa class="ListPipelinesCommand"/>
+            <access-group identifier="com.dsward.ControlBooth.pipelines"/>
+            <result description="The pipeline names.">
+                <type type="text" list="yes"/>
+            </result>
+        </command>
+
+        <command name="running pipelines" code="CBthRuns"
+                 description="The names of the pipelines that are currently running.">
+            <cocoa class="RunningPipelinesCommand"/>
+            <access-group identifier="com.dsward.ControlBooth.pipelines"/>
+            <result description="The running pipeline names.">
+                <type type="text" list="yes"/>
+            </result>
+        </command>
+
+    </suite>
+</dictionary>
