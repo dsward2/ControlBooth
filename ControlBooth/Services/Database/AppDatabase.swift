@@ -35,6 +35,22 @@ final class AppDatabase {
             }
             try seedExamplePipelines(db)
         }
+        m.registerMigration("v2_scheduled_event") { db in
+            try db.create(table: "scheduled_event") { t in
+                t.autoIncrementedPrimaryKey("id")
+                t.column("name", .text).notNull().defaults(to: "New Event")
+                t.column("pipeline_id", .integer).notNull()
+                t.column("days_of_week", .integer).notNull().defaults(to: 62)    // Mon–Fri
+                t.column("start_time_seconds", .integer).notNull().defaults(to: 32400) // 9:00 AM
+                t.column("duration_seconds", .integer).notNull().defaults(to: 3600)
+                t.column("is_enabled", .boolean).notNull().defaults(to: true)
+            }
+        }
+        m.registerMigration("v3_recording_directory") { db in
+            try db.alter(table: "scheduled_event") { t in
+                t.add(column: "recording_directory", .text)
+            }
+        }
         return m
     }
 

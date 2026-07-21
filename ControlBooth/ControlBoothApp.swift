@@ -5,15 +5,23 @@ struct ControlBoothApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var store = PipelineStore()
     @State private var runner = PipelineRunner()
+    @State private var eventStore = ScheduledEventStore()
+    @State private var scheduler = Scheduler()
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(store)
                 .environment(runner)
+                .environment(eventStore)
+                .environment(scheduler)
                 .onAppear {
                     appDelegate.runner = runner
                     appDelegate.store = store
+                    scheduler.reschedule(events: eventStore.events, pipelineStore: store, runner: runner)
+                }
+                .onChange(of: eventStore.events) {
+                    scheduler.reschedule(events: eventStore.events, pipelineStore: store, runner: runner)
                 }
         }
     }

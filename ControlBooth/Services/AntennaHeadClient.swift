@@ -30,7 +30,9 @@ enum AntennaHeadClient {
     }
 
     static var isAntennaHeadRunning: Bool {
-        !NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).isEmpty
+        let apps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier)
+        print("AntennaHeadClient: isAntennaHeadRunning — found \(apps.count) instance(s): \(apps.map { $0.processIdentifier })")
+        return !apps.isEmpty
     }
 
     static func startListening(task name: String) throws {
@@ -39,6 +41,14 @@ enum AntennaHeadClient {
 
     static func stopListening(task name: String) throws {
         _ = try send(eventID: "Stop", directParameter: NSAppleEventDescriptor(string: name))
+    }
+
+    static func startRecording(toPath path: String) throws {
+        _ = try send(eventID: "RecS", directParameter: NSAppleEventDescriptor(string: path))
+    }
+
+    static func stopRecording() throws {
+        _ = try send(eventID: "RecP", directParameter: nil)
     }
 
     static func listeningTasks() throws -> [String] {
@@ -52,13 +62,16 @@ enum AntennaHeadClient {
     }
 
     private static func send(eventID: String, directParameter: NSAppleEventDescriptor?) throws -> NSAppleEventDescriptor {
-        guard isAntennaHeadRunning else {
+        // Use PID-based targeting so the event goes to exactly the running instance
+        // we find, not an ambiguous bundle-ID lookup (which can hit a stale process).
+        guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).first else {
             throw ClientError.notRunning
         }
+        print("AntennaHeadClient: sending '\(eventID)' to AntennaHead PID \(app.processIdentifier)")
         let event = NSAppleEventDescriptor.appleEvent(
             withEventClass: fourCC("AntH"),
             eventID: fourCC(eventID),
-            targetDescriptor: NSAppleEventDescriptor(bundleIdentifier: bundleIdentifier),
+            targetDescriptor: NSAppleEventDescriptor(processIdentifier: app.processIdentifier),
             returnID: AEReturnID(-1),   // kAutoGenerateReturnID
             transactionID: AETransactionID(0)   // kAnyTransactionID
         )

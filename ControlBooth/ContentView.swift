@@ -2,23 +2,45 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(PipelineStore.self) private var store
-    @State private var selectedID: Int64?
+    @Environment(ScheduledEventStore.self) private var eventStore
+    @State private var selectedPipelineID: Int64?
+    @State private var selectedEventID: Int64?
 
     var body: some View {
-        NavigationSplitView {
-            PipelineListView(selectedID: $selectedID)
-                .navigationSplitViewColumnWidth(min: 220, ideal: 280)
-        } detail: {
-            if let id = selectedID, let pipeline = store.pipeline(withID: id) {
-                PipelineEditorView(pipeline: pipeline)
-                    .id(id)
-            } else {
-                ContentUnavailableView(
-                    "No Pipeline Selected",
-                    systemImage: "waveform.path",
-                    description: Text("Select a pipeline in the sidebar, or add one with the + button.")
-                )
+        TabView {
+            NavigationSplitView {
+                PipelineListView(selectedID: $selectedPipelineID)
+                    .navigationSplitViewColumnWidth(min: 220, ideal: 280)
+            } detail: {
+                if let id = selectedPipelineID, let pipeline = store.pipeline(withID: id) {
+                    PipelineEditorView(pipeline: pipeline)
+                        .id(id)
+                } else {
+                    ContentUnavailableView(
+                        "No Pipeline Selected",
+                        systemImage: "waveform.path",
+                        description: Text("Select a pipeline in the sidebar, or add one with the + button.")
+                    )
+                }
             }
+            .tabItem { Label("Pipelines", systemImage: "waveform.path") }
+
+            NavigationSplitView {
+                ScheduleListView(selectedID: $selectedEventID)
+                    .navigationSplitViewColumnWidth(min: 220, ideal: 280)
+            } detail: {
+                if let id = selectedEventID, let event = eventStore.event(withID: id) {
+                    ScheduleEditorView(event: event)
+                        .id(id)
+                } else {
+                    ContentUnavailableView(
+                        "No Event Selected",
+                        systemImage: "calendar.clock",
+                        description: Text("Select a scheduled event, or add one with the + button.")
+                    )
+                }
+            }
+            .tabItem { Label("Schedule", systemImage: "calendar.clock") }
         }
         .frame(minWidth: 880, minHeight: 560)
     }
@@ -27,5 +49,7 @@ struct ContentView: View {
 #Preview {
     ContentView()
         .environment(PipelineStore())
+        .environment(ScheduledEventStore())
         .environment(PipelineRunner())
+        .environment(Scheduler())
 }
