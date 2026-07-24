@@ -51,6 +51,19 @@ final class AppDatabase {
                 t.add(column: "recording_directory", .text)
             }
         }
+        m.registerMigration("v4_airplay_receiver_settings") { db in
+            try db.create(table: "airplay_receiver_settings") { t in
+                t.column("id", .integer).primaryKey()
+                t.column("enabled", .boolean).notNull().defaults(to: false)
+                t.column("device_name", .text).notNull().defaults(to: "ControlBooth")
+                t.column("destination_host", .text).notNull().defaults(to: "127.0.0.1")
+                t.column("destination_port", .integer).notNull().defaults(to: 6019)
+            }
+            try db.execute(sql: """
+                INSERT INTO airplay_receiver_settings (id, enabled, device_name, destination_host, destination_port)
+                VALUES (1, 0, 'ControlBooth', '127.0.0.1', 6019)
+                """)
+        }
         return m
     }
 

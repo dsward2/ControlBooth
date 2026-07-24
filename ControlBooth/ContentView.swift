@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @Environment(PipelineStore.self) private var store
     @Environment(ScheduledEventStore.self) private var eventStore
+    @Environment(AirPlaySettingsStore.self) private var airPlaySettingsStore
     @State private var selectedPipelineID: Int64?
     @State private var selectedEventID: Int64?
 
@@ -41,6 +42,10 @@ struct ContentView: View {
                 }
             }
             .tabItem { Label("Schedule", systemImage: "calendar.clock") }
+
+            AirPlaySettingsView(settings: airPlaySettingsStore.settings)
+                .id(airPlaySettingsStore.settings)
+                .tabItem { Label("AirPlay", systemImage: "airplayaudio") }
         }
         .frame(minWidth: 880, minHeight: 560)
     }
