@@ -24,6 +24,26 @@ struct ControlBoothApp: App {
                     scheduler.reschedule(events: eventStore.events, pipelineStore: store, runner: runner)
                 }
         }
+        .commands {
+            CommandGroup(replacing: .appInfo) {
+                OpenAboutWindowButton()
+            }
+        }
+
+        Window("About ControlBooth", id: "about") {
+            AboutView()
+        }
+        .windowResizability(.contentSize)
+    }
+}
+
+private struct OpenAboutWindowButton: View {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Button("About ControlBooth") {
+            openWindow(id: "about")
+        }
     }
 }
 

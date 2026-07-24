@@ -1,4 +1,5 @@
 import AppKit
+import PipelineRunner
 import SwiftUI
 
 struct StageEditorView: View {
@@ -11,8 +12,16 @@ struct StageEditorView: View {
         GroupBox {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    TextField("Tool path (absolute, or bare name for Contents/Helpers)", text: $stage.path)
-                        .font(.body.monospaced())
+                    VStack(alignment: .leading, spacing: 2) {
+                        if !toolName.isEmpty {
+                            Text(toolName)
+                                .font(.headline)
+                                .lineLimit(1)
+                        }
+                        TextField("Tool path (absolute, or bare name for Contents/Helpers)", text: $stage.path)
+                            .font(.body.monospaced())
+                            .help(stage.path)
+                    }
                     Button {
                         chooseToolPath()
                     } label: {
@@ -20,6 +29,20 @@ struct StageEditorView: View {
                     }
                     .buttonStyle(.borderless)
                     .help("Choose tool with a file picker")
+                    Button {
+                        copyStage()
+                    } label: {
+                        Image(systemName: "doc.on.doc")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Copy this stage as CLI text")
+                    Button {
+                        pasteStage()
+                    } label: {
+                        Image(systemName: "doc.on.clipboard")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Paste a stage's CLI text over this one")
                     Button {
                         onMoveUp()
                     } label: {
@@ -68,6 +91,27 @@ struct StageEditorView: View {
             }
             .padding(4)
         }
+    }
+
+    private var toolName: String {
+        guard stage.path.contains("/") else { return "" }
+        return URL(fileURLWithPath: stage.path).lastPathComponent
+    }
+
+    private func copyStage() {
+        let text = CLIStageText.export(CLIStage(path: stage.path, arguments: stage.arguments))
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+    }
+
+    // Pasted text may itself be a whole `|`-joined pipeline (e.g. copied from
+    // ControlBooth's own "Copy Pipeline" or from AntennaHead); only the first
+    // stage applies here since this button edits a single stage in place.
+    private func pasteStage() {
+        guard let text = NSPasteboard.general.string(forType: .string),
+              let parsed = CLIStageText.importStage(text) else { return }
+        stage.path = parsed.path
+        stage.arguments = parsed.arguments
     }
 
     private func chooseToolPath() {

@@ -1,5 +1,5 @@
 {
-  "originHash" : "d77223ea3cadaebd2154378ec5005b6ebefcef3b34a4dafa368b0c4f16c0561c",
+  "originHash" : "5190cbbf17c17261189a850fe8a61a37234a3ac4321a8aef94a57b4ea259b56f",
   "pins" : [
     {
       "identity" : "grdb.swift",
@@ -8,6 +8,15 @@
       "state" : {
         "branch" : "master",
         "revision" : "b83108d10f42680d78f23fe4d4d80fc88dab3212"
+      }
+    },
+    {
+      "identity" : "pipelinehelpers",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/dsward2/PipelineHelpers",
+      "state" : {
+        "branch" : "main",
+        "revision" : "3dfcf31686cff5494bbc66e3b03a8f1535d2b2b5"
       }
     }
   ],
