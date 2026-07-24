@@ -27,7 +27,7 @@ struct AirPlaySettingsView: View {
             } header: {
                 Text("AirPlay Receiver")
             } footer: {
-                Text("When enabled, ControlBooth advertises itself as an AirPlay speaker named \"\(deviceName)\" and forwards decoded PCM audio to \(destinationHost):\(String(destinationPort)). Requires macOS's own built-in AirPlay Receiver (System Settings → General → AirDrop & Handoff) to be turned off, since both use RTSP port 5000.")
+                Text("When enabled, ControlBooth advertises itself as an AirPlay speaker named \"\(deviceName)\" and forwards decoded PCM audio to \(destinationHost):\(String(destinationPort)). Only one AirPlay receiver can be active on this Mac at a time — macOS's own built-in one (System Settings → General → AirDrop & Handoff), AntennaHead's, or this one — since all of them use RTSP port 5000.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
