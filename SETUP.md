@@ -34,7 +34,40 @@ Two package dependencies and one build phase must be added by hand:
    - Subpath: `Contents/Helpers`
    - **+** → add the **PCMUDPSender** product (from the local package).
 
-That's it — build and run.
+4. **AirPlayReceiver (local package)** — Package Dependencies → **+** →
+   **Add Local…** → select `…/antennahead-umbrella/AirPlayReceiver`. Add the
+   **AirPlayReceiver** library product to the ControlBooth target. It provides
+   `AirPlayReceiverController`, wrapping a vendored `shairport-sync` (AirPlay 1
+   / RAOP only — see the package's own README) that decodes into the same
+   `sox → PCMUDPSender` chain as everything else.
+
+5. **"Embed AirPlayReceiver Helper" Run Script phase** — ControlBooth target →
+   Build Phases → **+** → New Run Script Phase, positioned after the Copy
+   Files phase above. Copies three things into place, since ControlBooth
+   doesn't otherwise bundle any of them:
+   - `shairport-sync` (+ its dylibs) out of the resolved package's resource
+     bundle (`AirPlayReceiver_AirPlayReceiver.bundle`) into
+     `Contents/Helpers`/`Contents/Frameworks`
+   - `sox` from the sibling AntennaHead checkout (`../AntennaHead/sox`) into
+     `Contents/Helpers` — AirPlayReceiverController's resample stage needs it,
+     but ControlBooth's own pipelines reference sox by absolute path instead
+     of bundling it, so this is new here.
+
+   Every source and destination path must be listed explicitly in the phase's
+   Input Files / Output Files (not just referenced in the script body) —
+   Xcode's script-phase sandbox (`ENABLE_USER_SCRIPT_SANDBOXING`) denies
+   filesystem access to anything not declared that way, including directory
+   globs.
+
+That's it — build and run. A new "AirPlay" tab holds the enable/disable
+toggle, device name, and UDP destination (see `AirPlaySettingsView.swift`);
+unlike Pipeline records, this is a single always-on-when-enabled service, not
+a user-assembled chain, so it gets its own settings row
+(`airplay_receiver_settings`) instead.
+
+**Requires macOS's own built-in AirPlay Receiver (System Settings → General →
+AirDrop & Handoff) to be off** — both bind RTSP port 5000, and non-AirPlay-2
+shairport-sync builds can't be pointed at a different port.
 
 ## Audio contract
 
