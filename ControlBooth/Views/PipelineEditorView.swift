@@ -1,3 +1,5 @@
+import AppKit
+import PipelineRunner
 import SwiftUI
 
 struct PipelineEditorView: View {
@@ -35,10 +37,25 @@ struct PipelineEditorView: View {
                         onDelete: { remove(stage) }
                     )
                 }
-                Button {
-                    stages.append(PipelineStage())
-                } label: {
-                    Label("Add Stage", systemImage: "plus")
+                HStack {
+                    Button {
+                        stages.append(PipelineStage())
+                    } label: {
+                        Label("Add Stage", systemImage: "plus")
+                    }
+                    Button {
+                        copyPipeline()
+                    } label: {
+                        Label("Copy Pipeline", systemImage: "doc.on.doc")
+                    }
+                    .disabled(stages.isEmpty)
+                    .help("Copy all stages as `|`-joined CLI text")
+                    Button {
+                        pastePipeline()
+                    } label: {
+                        Label("Paste Pipeline", systemImage: "doc.on.clipboard")
+                    }
+                    .help("Replace all stages with pasted CLI text")
                 }
             } header: {
                 Text("Stages")
@@ -110,6 +127,19 @@ struct PipelineEditorView: View {
         } catch {
             errorMessage = "\(error)"
         }
+    }
+
+    private func copyPipeline() {
+        let text = CLIStageText.export(pipeline: stages.map { CLIStage(path: $0.path, arguments: $0.arguments) })
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+    }
+
+    private func pastePipeline() {
+        guard let text = NSPasteboard.general.string(forType: .string) else { return }
+        let parsed = CLIStageText.importPipeline(text)
+        guard !parsed.isEmpty else { return }
+        stages = parsed.map { PipelineStage(path: $0.path, arguments: $0.arguments) }
     }
 
     private func remove(_ stage: PipelineStage) {
