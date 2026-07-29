@@ -11,6 +11,7 @@ struct PipelineStatusView: View {
         TimelineView(.periodic(from: .now, by: 2)) { _ in
             VStack(alignment: .leading, spacing: 8) {
                 if let manager = runner.manager(for: pipeline) {
+                    PipelineDiagramView(stages: diagramStages(manager))
                     Text(statusLabel(manager.status))
                         .fontWeight(.medium)
                     if let failure = manager.lastFailure {
@@ -26,6 +27,20 @@ struct PipelineStatusView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func diagramStages(_ manager: TaskPipelineManager) -> [PipelineDiagramView.DiagramStage] {
+        manager.taskItems.map { item in
+            let pid = item.process?.processIdentifier ?? 0
+            let running = item.process?.isRunning ?? false
+            return PipelineDiagramView.DiagramStage(
+                name: item.functionName,
+                detail: running ? "PID \(pid)" : "stopped",
+                path: item.path,
+                args: item.argsArray,
+                running: running
+            )
         }
     }
 

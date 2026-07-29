@@ -51,6 +51,12 @@ final class AppDatabase {
                 t.add(column: "recording_directory", .text)
             }
         }
+        m.registerMigration("v5_pipeline_sort_order") { db in
+            try db.alter(table: "pipeline") { t in
+                t.add(column: "sort_order", .integer).notNull().defaults(to: 0)
+            }
+            try db.execute(sql: "UPDATE pipeline SET sort_order = id")
+        }
         m.registerMigration("v4_airplay_receiver_settings") { db in
             try db.create(table: "airplay_receiver_settings") { t in
                 t.column("id", .integer).primaryKey()

@@ -69,6 +69,22 @@ a user-assembled chain, so it gets its own settings row
 AirDrop & Handoff) to be off** — both bind RTSP port 5000, and non-AirPlay-2
 shairport-sync builds can't be pointed at a different port.
 
+## rtl_fm_localradio (vendored native tool target)
+
+`rtl_fm_localradio` (an RTL-SDR FM/HD-Radio demodulator, derived from
+`rtl_fm.c`) is available in `Contents/Helpers/rtl_fm_localradio`, so pipeline
+stages can reference it by bare name like any other helper tool. Unlike the
+`PCM*`/`AUProcessor`/etc. tools, it isn't an SPM package product — it's a
+second native "tool" target inside `ControlBooth.xcodeproj` itself
+(`rtl_fm_localradio_src/`), built the same way AntennaHead already builds its
+own copy: linked against a locally-vendored `librtlsdr.xcframework` and a
+vendored `libusb-1.0.0.dylib` (embedded into `Contents/Frameworks` via this
+target's own Embed Frameworks phase), with a post-link step rewriting the
+build-time MacPorts `libusb` path to `@rpath`. This mirrors how sox and
+shairport-sync are vendored per-app rather than shared through SPM — none of
+these native, OS-library-dependent tools can cleanly go through a package
+target.
+
 ## Audio contract
 
 Every path into AntennaHead's LiveAudioServer is 48 kHz / 2-channel S16LE.

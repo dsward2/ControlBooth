@@ -7,6 +7,7 @@ struct Pipeline: Codable, Identifiable, Hashable, FetchableRecord, MutablePersis
     var stagesJson: String
     var destinationHost: String
     var destinationPort: Int
+    var sortOrder: Int
 
     static let databaseTableName = "pipeline"
 
@@ -16,19 +17,21 @@ struct Pipeline: Codable, Identifiable, Hashable, FetchableRecord, MutablePersis
         case stagesJson = "stages_json"
         case destinationHost = "destination_host"
         case destinationPort = "destination_port"
+        case sortOrder = "sort_order"
     }
 
     mutating func didInsert(_ inserted: InsertionSuccess) {
         id = inserted.rowID
     }
 
-    static func prototype(name: String = "New Pipeline") -> Pipeline {
+    static func prototype(name: String = "New Pipeline", sortOrder: Int = 0) -> Pipeline {
         Pipeline(
             id: nil,
             name: name,
             stagesJson: PipelineStage.encode([]),
             destinationHost: "127.0.0.1",
-            destinationPort: 6019
+            destinationPort: 6019,
+            sortOrder: sortOrder
         )
     }
 

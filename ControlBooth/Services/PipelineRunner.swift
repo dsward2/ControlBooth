@@ -34,6 +34,15 @@ final class PipelineRunner {
 
     private(set) var managers: [Int64: TaskPipelineManager] = [:]
 
+    /// Destination (host, port) each currently-started pipeline is sending
+    /// to, keyed by pipeline id. Used only to catch two pipelines racing to
+    /// the same destination before they can interleave into one garbled UDP
+    /// stream (AntennaHead's receiver has no way to tell the streams apart).
+    /// Every lookup rechecks the corresponding manager's live `.status`
+    /// first, so an entry left behind by a pipeline that crashed or was
+    /// stopped elsewhere can never cause a false "in use" rejection.
+    private var startedDestinations: [Int64: (name: String, host: String, port: Int)] = [:]
+
     func manager(for pipeline: Pipeline) -> TaskPipelineManager? {
         guard let id = pipeline.id else { return nil }
         return managers[id]
@@ -56,6 +65,21 @@ final class PipelineRunner {
                 throw RunnerError.alreadyRunning(pipeline.name)
             }
             managers[id] = nil
+        }
+
+        // Two pipelines sharing a destination would interleave into one
+        // garbled stream, so rather than reject the new pipeline, stop
+        // whichever other pipeline is already sending to the same place —
+        // switching pipelines should just work, not require a manual Stop
+        // first. terminateAndWait blocks until it's actually gone, so the
+        // hardware/port it held is free before we launch the replacement.
+        for (otherID, otherManager) in managers where otherID != id && otherManager.status == .running {
+            guard let dest = startedDestinations[otherID],
+                  dest.host == pipeline.destinationHost,
+                  dest.port == pipeline.destinationPort else { continue }
+            otherManager.terminateAndWait()
+            managers[otherID] = nil
+            startedDestinations[otherID] = nil
         }
 
         let stages = pipeline.stages
@@ -98,19 +122,26 @@ final class PipelineRunner {
 
         try manager.start()
         managers[id] = manager
+        startedDestinations[id] = (pipeline.name, pipeline.destinationHost, pipeline.destinationPort)
     }
 
+    /// Blocks until the pipeline's processes have actually exited (see
+    /// `TaskItem.terminateAndWait`), so a `start()` for a replacement
+    /// pipeline right after this returns reliably finds any exclusive
+    /// hardware device or destination port the old pipeline held released.
     func stop(_ pipeline: Pipeline) {
         guard let id = pipeline.id, let manager = managers[id] else { return }
-        manager.terminate()
+        manager.terminateAndWait()
         managers[id] = nil
+        startedDestinations[id] = nil
     }
 
     func stopAll() {
         for manager in managers.values {
-            manager.terminate()
+            manager.terminateAndWait()
         }
         managers.removeAll()
+        startedDestinations.removeAll()
     }
 
     /// Bare tool names resolve to the app bundle's Contents/Helpers directory;

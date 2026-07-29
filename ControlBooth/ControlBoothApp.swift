@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 @main
@@ -11,7 +12,7 @@ struct ControlBoothApp: App {
     @State private var airPlayReceiverService = AirPlayReceiverService()
 
     var body: some Scene {
-        WindowGroup {
+        Window("ControlBooth", id: "main") {
             ContentView()
                 .environment(store)
                 .environment(runner)
@@ -19,6 +20,7 @@ struct ControlBoothApp: App {
                 .environment(scheduler)
                 .environment(airPlaySettingsStore)
                 .environment(airPlayReceiverService)
+                .background(CloseButtonHider())
                 .onAppear {
                     appDelegate.runner = runner
                     appDelegate.store = store
@@ -41,6 +43,17 @@ struct ControlBoothApp: App {
         }
         .windowResizability(.contentSize)
     }
+}
+
+private struct CloseButtonHider: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            view.window?.standardWindowButton(.closeButton)?.isHidden = true
+        }
+        return view
+    }
+    func updateNSView(_ nsView: NSView, context: Context) {}
 }
 
 private struct OpenAboutWindowButton: View {

@@ -1,6 +1,7 @@
 import Foundation
 import GRDB
 import Observation
+import SwiftUI
 
 @MainActor
 @Observable
@@ -18,7 +19,7 @@ final class PipelineStore {
     func load() {
         do {
             pipelines = try dbQueue.read { db in
-                try Pipeline.order(Column("id")).fetchAll(db)
+                try Pipeline.order(Column("sort_order")).fetchAll(db)
             }
         } catch {
             print("PipelineStore - load failed: \(error)")
@@ -42,7 +43,24 @@ final class PipelineStore {
 
     @discardableResult
     func createNew() throws -> Pipeline {
-        try save(Pipeline.prototype())
+        let nextOrder = (pipelines.map(\.sortOrder).max() ?? -1) + 1
+        return try save(Pipeline.prototype(sortOrder: nextOrder))
+    }
+
+    func move(from source: IndexSet, to destination: Int) {
+        var reordered = pipelines
+        reordered.move(fromOffsets: source, toOffset: destination)
+        do {
+            try dbQueue.write { db in
+                for (index, var pipeline) in reordered.enumerated() {
+                    pipeline.sortOrder = index
+                    try pipeline.update(db)
+                }
+            }
+            load()
+        } catch {
+            print("PipelineStore - move failed: \(error)")
+        }
     }
 
     func delete(_ pipeline: Pipeline) throws {

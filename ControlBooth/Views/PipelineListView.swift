@@ -12,6 +12,9 @@ struct PipelineListView: View {
                 PipelineRowView(pipeline: pipeline, errorMessage: $errorMessage)
                     .tag(pipeline.id ?? -1)
             }
+            .onMove { from, to in
+                store.move(from: from, to: to)
+            }
         }
         .navigationTitle("ControlBooth")
         .toolbar {

@@ -10,6 +10,14 @@ struct AboutView: View {
         return "\(version) (Build \(build))"
     }
 
+    /// Set by macOS only when the process is running under the App Sandbox
+    /// (see `com.apple.security.app-sandbox`). ControlBooth is unsandboxed —
+    /// it needs unrestricted access to run arbitrary pipeline tools — so this
+    /// should normally read "Disabled".
+    private var appSandboxStatus: String {
+        ProcessInfo.processInfo.environment["APP_SANDBOX_CONTAINER_ID"] != nil ? "Enabled" : "Disabled"
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             Image(nsImage: NSImage(named: NSImage.applicationIconName) ?? NSImage())
@@ -45,7 +53,13 @@ struct AboutView: View {
             Text("© 2026 dsward2. All rights reserved.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-                .padding(.vertical, 12)
+                .padding(.top, 12)
+
+            Text("App Sandbox: \(appSandboxStatus)")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .padding(.top, 2)
+                .padding(.bottom, 12)
         }
         .frame(width: 340)
     }
