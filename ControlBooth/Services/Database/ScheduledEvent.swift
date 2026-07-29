@@ -10,6 +10,11 @@ struct ScheduledEvent: Codable, Identifiable, Hashable, Equatable, FetchableReco
     var durationSeconds: Int
     var isEnabled: Bool
     var recordingDirectory: String?
+    /// Base64-encoded security-scoped bookmark for `recordingDirectory`, minted
+    /// when the folder was picked. AntennaHead (sandboxed) resolves this to gain
+    /// write access — the plain path alone carries no sandbox grant. `nil` for
+    /// events whose folder was picked before this existed; re-pick to mint one.
+    var recordingBookmark: String?
 
     static let databaseTableName = "scheduled_event"
 
@@ -22,6 +27,7 @@ struct ScheduledEvent: Codable, Identifiable, Hashable, Equatable, FetchableReco
         case durationSeconds    = "duration_seconds"
         case isEnabled          = "is_enabled"
         case recordingDirectory = "recording_directory"
+        case recordingBookmark  = "recording_bookmark"
     }
 
     mutating func didInsert(_ inserted: InsertionSuccess) {
@@ -37,7 +43,8 @@ struct ScheduledEvent: Codable, Identifiable, Hashable, Equatable, FetchableReco
             startTimeSeconds: 9 * 3600,
             durationSeconds: 3600,
             isEnabled: true,
-            recordingDirectory: nil
+            recordingDirectory: nil,
+            recordingBookmark: nil
         )
     }
 

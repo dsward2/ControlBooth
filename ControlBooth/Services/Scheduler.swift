@@ -41,12 +41,16 @@ final class Scheduler {
             guard !Task.isCancelled else { break }
 
             if let pipeline = pipelineStore.pipeline(withID: next.event.pipelineId) {
-                if let dir = next.event.recordingDirectory {
-                    let path = Self.makeRecordingPath(eventName: next.event.name, directory: dir)
-                    do {
-                        try AntennaHeadClient.startRecording(toPath: path)
-                    } catch {
-                        lastError = "Recording start failed for '\(next.event.name)': \(error)"
+                if next.event.recordingDirectory != nil {
+                    if let bookmarkB64 = next.event.recordingBookmark, let bookmark = Data(base64Encoded: bookmarkB64) {
+                        let filename = Self.makeRecordingFilename(eventName: next.event.name)
+                        do {
+                            try AntennaHeadClient.startRecording(bookmark: bookmark, filename: filename)
+                        } catch {
+                            lastError = "Recording start failed for '\(next.event.name)': \(error)"
+                        }
+                    } else {
+                        lastError = "Recording start failed for '\(next.event.name)': no security-scoped bookmark for its folder — re-pick it in the event's Change… button."
                     }
                 }
                 do {
@@ -80,12 +84,12 @@ final class Scheduler {
         let event: ScheduledEvent
     }
 
-    static func makeRecordingPath(eventName: String, directory: String) -> String {
+    static func makeRecordingFilename(eventName: String) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd_HH-mm"
         let timestamp = formatter.string(from: Date())
         let safeName = eventName.replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: ":", with: "-")
-        return URL(fileURLWithPath: directory).appendingPathComponent("\(safeName)_\(timestamp).aac").path
+        return "\(safeName)_\(timestamp).aac"
     }
 
     private static func soonestFire(from events: [ScheduledEvent], after now: Date) -> NextFire? {

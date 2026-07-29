@@ -70,6 +70,16 @@ final class AppDatabase {
                 VALUES (1, 0, 'ControlBooth', '127.0.0.1', 6019)
                 """)
         }
+        m.registerMigration("v6_recording_bookmark") { db in
+            try db.alter(table: "scheduled_event") { t in
+                // Base64-encoded security-scoped bookmark for recording_directory,
+                // so sandboxed AntennaHead can be granted write access to a folder
+                // ControlBooth (unsandboxed) picked — a plain path string carries
+                // no sandbox grant. Existing rows get NULL; re-pick the folder
+                // (Change…) to mint one.
+                t.add(column: "recording_bookmark", .text)
+            }
+        }
         return m
     }
 

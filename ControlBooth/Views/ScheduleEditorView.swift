@@ -15,6 +15,7 @@ struct ScheduleEditorView: View {
     @State private var durationSeconds: Int
     @State private var isEnabled: Bool
     @State private var recordingDirectory: String?
+    @State private var recordingBookmark: String?
     @State private var errorMessage: String?
 
     private static let dayAbbreviations = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -28,6 +29,7 @@ struct ScheduleEditorView: View {
         _durationSeconds  = State(initialValue: event.durationSeconds)
         _isEnabled           = State(initialValue: event.isEnabled)
         _recordingDirectory  = State(initialValue: event.recordingDirectory)
+        _recordingBookmark   = State(initialValue: event.recordingBookmark)
     }
 
     var body: some View {
@@ -91,7 +93,10 @@ struct ScheduleEditorView: View {
                                 .truncationMode(.head)
                                 .foregroundStyle(.secondary)
                             Button("Change…") { pickFolder() }
-                            Button("Clear") { recordingDirectory = nil }
+                            Button("Clear") {
+                                recordingDirectory = nil
+                                recordingBookmark = nil
+                            }
                         }
                     }
                     HStack {
@@ -165,7 +170,8 @@ struct ScheduleEditorView: View {
             startTimeSeconds: startTimeSeconds,
             durationSeconds: durationSeconds,
             isEnabled: isEnabled,
-            recordingDirectory: recordingDirectory
+            recordingDirectory: recordingDirectory,
+            recordingBookmark: recordingBookmark
         )
     }
 
@@ -177,6 +183,7 @@ struct ScheduleEditorView: View {
         || durationSeconds   != event.durationSeconds
         || isEnabled         != event.isEnabled
         || recordingDirectory != event.recordingDirectory
+        || recordingBookmark != event.recordingBookmark
     }
 
     private func testConnection() {
@@ -193,11 +200,15 @@ struct ScheduleEditorView: View {
     }
 
     private func testRecording() {
-        guard let dir = recordingDirectory else { return }
-        let path = Scheduler.makeRecordingPath(eventName: name.isEmpty ? "Test" : name, directory: dir)
+        guard recordingDirectory != nil else { return }
+        guard let bookmarkB64 = recordingBookmark, let bookmark = Data(base64Encoded: bookmarkB64) else {
+            errorMessage = "This folder has no security-scoped bookmark (picked before this was added, or the bookmark failed to save) — click Change… to re-select it."
+            return
+        }
+        let filename = Scheduler.makeRecordingFilename(eventName: name.isEmpty ? "Test" : name)
         do {
-            try AntennaHeadClient.startRecording(toPath: path)
-            errorMessage = "Recording started — file will appear at:\n\(path)\n\nStop AntennaHead's LiveAudioServer recording by stopping the pipeline or waiting for the event to end."
+            try AntennaHeadClient.startRecording(bookmark: bookmark, filename: filename)
+            errorMessage = "Recording started — file will appear as \"\(filename)\" in the chosen folder.\n\nStop AntennaHead's LiveAudioServer recording by stopping the pipeline or waiting for the event to end."
         } catch {
             errorMessage = "Recording test failed: \(error)"
         }
@@ -210,8 +221,18 @@ struct ScheduleEditorView: View {
         panel.canCreateDirectories = true
         panel.prompt = "Select"
         panel.message = "Choose a folder for recording files"
-        if panel.runModal() == .OK {
-            recordingDirectory = panel.url?.path
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        recordingDirectory = url.path
+        do {
+            // AntennaHead (sandboxed) needs this bookmark to gain write access
+            // to a folder picked here in unsandboxed ControlBooth — the plain
+            // path alone carries no sandbox grant.
+            let bookmark = try url.bookmarkData(options: .withSecurityScope,
+                                                 includingResourceValuesForKeys: nil, relativeTo: nil)
+            recordingBookmark = bookmark.base64EncodedString()
+        } catch {
+            recordingBookmark = nil
+            errorMessage = "Couldn't create a security-scoped bookmark for that folder: \(error)\n\nRecording to it will fail until you pick it again."
         }
     }
 
