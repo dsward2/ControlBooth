@@ -65,6 +65,9 @@ struct ScheduleEditorView: View {
             Section("Timing") {
                 DatePicker("Start", selection: startTimeBinding, displayedComponents: .hourAndMinute)
                 Picker("Duration", selection: $durationSeconds) {
+                    Text("1 minute").tag(60)
+                    Text("5 minutes").tag(5 * 60)
+                    Text("10 minutes").tag(10 * 60)
                     Text("15 minutes").tag(15 * 60)
                     Text("30 minutes").tag(30 * 60)
                     Text("45 minutes").tag(45 * 60)
