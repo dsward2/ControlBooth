@@ -7,11 +7,13 @@ import AppKit
 ///   'Strt'  start listening   direct parameter: custom-task name
 ///   'Stop'  stop listening    direct parameter: custom-task name
 ///   'Runs'  listening tasks   reply: list of the listening tasks' names
-///   'RecS'  start recording   direct parameter: security-scoped bookmark
-///                             (Data) for the recording folder; 'fnam' param:
-///                             the desired filename within it. AntennaHead is
-///                             sandboxed and has no access to a folder
-///                             ControlBooth picked without this bookmark.
+///   'RecS'  start recording   direct parameter: filename to create. Written
+///                             into the folder configured in AntennaHead's
+///                             own Settings — a folder picked here in
+///                             unsandboxed ControlBooth carries no sandbox
+///                             access grant AntennaHead (sandboxed) can use,
+///                             so the folder itself isn't ControlBooth's to
+///                             pick or send.
 ///   'RecP'  stop recording    no parameters
 ///
 /// Sending waits synchronously for the reply (with a timeout), so call from
@@ -49,14 +51,8 @@ enum AntennaHeadClient {
         _ = try send(eventID: "Stop", directParameter: NSAppleEventDescriptor(string: name))
     }
 
-    /// - Parameters:
-    ///   - bookmark: security-scoped bookmark data for the recording folder
-    ///     (from `URL.bookmarkData(options: .withSecurityScope, ...)`).
-    ///   - filename: the file to create inside that folder.
-    static func startRecording(bookmark: Data, filename: String) throws {
-        let bookmarkDescriptor = NSAppleEventDescriptor(descriptorType: typeData, data: bookmark)
-        _ = try send(eventID: "RecS", directParameter: bookmarkDescriptor,
-                     extraParams: [(keyRecordingFilename, NSAppleEventDescriptor(string: filename))])
+    static func startRecording(filename: String) throws {
+        _ = try send(eventID: "RecS", directParameter: NSAppleEventDescriptor(string: filename))
     }
 
     static func stopRecording() throws {
@@ -73,8 +69,7 @@ enum AntennaHeadClient {
         return (1...list.numberOfItems).compactMap { list.atIndex($0)?.stringValue }
     }
 
-    private static func send(eventID: String, directParameter: NSAppleEventDescriptor?,
-                              extraParams: [(FourCharCode, NSAppleEventDescriptor)] = []) throws -> NSAppleEventDescriptor {
+    private static func send(eventID: String, directParameter: NSAppleEventDescriptor?) throws -> NSAppleEventDescriptor {
         // Use PID-based targeting so the event goes to exactly the running instance
         // we find, not an ambiguous bundle-ID lookup (which can hit a stale process).
         guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).first else {
@@ -90,9 +85,6 @@ enum AntennaHeadClient {
         )
         if let directParameter {
             event.setParam(directParameter, forKeyword: keyDirectObject)
-        }
-        for (keyword, descriptor) in extraParams {
-            event.setParam(descriptor, forKeyword: keyword)
         }
         let reply = try event.sendEvent(options: [.waitForReply], timeout: 8)
         if let errorNumber = reply.paramDescriptor(forKeyword: keyErrorNumber)?.int32Value,
@@ -112,6 +104,4 @@ enum AntennaHeadClient {
     private static let keyDirectObject = fourCC("----")
     private static let keyErrorNumber = fourCC("errn")
     private static let keyErrorString = fourCC("errs")
-    private static let keyRecordingFilename = fourCC("fnam")
-    private static let typeData = fourCC("tdta")
 }

@@ -68,7 +68,9 @@ struct PipelineRowView: View {
             Button {
                 toggleRunning()
             } label: {
-                Image(systemName: runner.isRunning(pipeline) ? "stop.fill" : "play.fill")
+                Label(runner.isRunning(pipeline) ? "Stop pipeline" : "Start pipeline",
+                      systemImage: runner.isRunning(pipeline) ? "stop.fill" : "play.fill")
+                    .labelStyle(.iconOnly)
             }
             .buttonStyle(.borderless)
             .help(runner.isRunning(pipeline) ? "Stop pipeline" : "Start pipeline")

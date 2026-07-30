@@ -80,6 +80,21 @@ final class AppDatabase {
                 t.add(column: "recording_bookmark", .text)
             }
         }
+        m.registerMigration("v7_recording_enabled") { db in
+            // Superseded by v6's approach: a security-scoped bookmark minted by
+            // unsandboxed ControlBooth carries no sandbox grant a different,
+            // unrelated sandboxed app (AntennaHead) can redeem — confirmed the
+            // hard way (resolved fine in ControlBooth, always failed with
+            // NSCocoaErrorDomain 259 in AntennaHead). The recording destination
+            // is now a single folder configured once in AntennaHead's own
+            // Settings; recording_directory/recording_bookmark are dead columns
+            // left in place rather than dropped. This just needs to know
+            // whether an event records at all.
+            try db.alter(table: "scheduled_event") { t in
+                t.add(column: "recording_enabled", .boolean).notNull().defaults(to: false)
+            }
+            try db.execute(sql: "UPDATE scheduled_event SET recording_enabled = 1 WHERE recording_directory IS NOT NULL")
+        }
         return m
     }
 

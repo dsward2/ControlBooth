@@ -14,22 +14,20 @@ struct ScheduleEditorView: View {
     @State private var startTimeSeconds: Int
     @State private var durationSeconds: Int
     @State private var isEnabled: Bool
-    @State private var recordingDirectory: String?
-    @State private var recordingBookmark: String?
+    @State private var isRecordingEnabled: Bool
     @State private var errorMessage: String?
 
     private static let dayAbbreviations = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
     init(event: ScheduledEvent) {
         self.event = event
-        _name             = State(initialValue: event.name)
-        _pipelineId       = State(initialValue: event.pipelineId)
-        _daysOfWeek       = State(initialValue: event.daysOfWeek)
-        _startTimeSeconds = State(initialValue: event.startTimeSeconds)
-        _durationSeconds  = State(initialValue: event.durationSeconds)
-        _isEnabled           = State(initialValue: event.isEnabled)
-        _recordingDirectory  = State(initialValue: event.recordingDirectory)
-        _recordingBookmark   = State(initialValue: event.recordingBookmark)
+        _name               = State(initialValue: event.name)
+        _pipelineId         = State(initialValue: event.pipelineId)
+        _daysOfWeek         = State(initialValue: event.daysOfWeek)
+        _startTimeSeconds   = State(initialValue: event.startTimeSeconds)
+        _durationSeconds    = State(initialValue: event.durationSeconds)
+        _isEnabled          = State(initialValue: event.isEnabled)
+        _isRecordingEnabled = State(initialValue: event.isRecordingEnabled)
     }
 
     var body: some View {
@@ -84,35 +82,24 @@ struct ScheduleEditorView: View {
                 }
             }
 
-            Section("Recording") {
-                if let dir = recordingDirectory {
-                    LabeledContent("Folder") {
-                        HStack {
-                            Text(dir)
-                                .lineLimit(1)
-                                .truncationMode(.head)
-                                .foregroundStyle(.secondary)
-                            Button("Change…") { pickFolder() }
-                            Button("Clear") {
-                                recordingDirectory = nil
-                                recordingBookmark = nil
-                            }
-                        }
-                    }
+            Section {
+                Toggle("Record this event", isOn: $isRecordingEnabled)
+                if isRecordingEnabled {
                     HStack {
                         Button("Test Connection") { testConnection() }
                             .help("Sends a 'Runs' query to AntennaHead to verify the Apple Event channel works")
                         Button("Test Recording Now") { testRecording() }
-                            .help("Immediately starts a recording in the chosen folder")
-                    }
-                } else {
-                    HStack {
-                        Text("Not recording")
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Button("Set Folder…") { pickFolder() }
+                            .help("Immediately starts a recording in AntennaHead's configured recording folder")
+                        Button("Stop Test Recording") { testStopRecording() }
+                            .help("Stops the recording started by Test Recording Now and moves the finished file to its destination")
                     }
                 }
+            } header: {
+                Text("Recording")
+            } footer: {
+                Text("Recordings are written to the folder configured in AntennaHead's own Settings (Configuration → Recording) — not picked here, since AntennaHead is sandboxed and can't be granted access to a folder chosen in this, unsandboxed, app.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             if let err = scheduler.lastError {
@@ -170,20 +157,18 @@ struct ScheduleEditorView: View {
             startTimeSeconds: startTimeSeconds,
             durationSeconds: durationSeconds,
             isEnabled: isEnabled,
-            recordingDirectory: recordingDirectory,
-            recordingBookmark: recordingBookmark
+            isRecordingEnabled: isRecordingEnabled
         )
     }
 
     private var isDirty: Bool {
-        name               != event.name
-        || pipelineId        != event.pipelineId
-        || daysOfWeek        != event.daysOfWeek
-        || startTimeSeconds  != event.startTimeSeconds
-        || durationSeconds   != event.durationSeconds
-        || isEnabled         != event.isEnabled
-        || recordingDirectory != event.recordingDirectory
-        || recordingBookmark != event.recordingBookmark
+        name                != event.name
+        || pipelineId         != event.pipelineId
+        || daysOfWeek         != event.daysOfWeek
+        || startTimeSeconds   != event.startTimeSeconds
+        || durationSeconds    != event.durationSeconds
+        || isEnabled          != event.isEnabled
+        || isRecordingEnabled != event.isRecordingEnabled
     }
 
     private func testConnection() {
@@ -200,39 +185,21 @@ struct ScheduleEditorView: View {
     }
 
     private func testRecording() {
-        guard recordingDirectory != nil else { return }
-        guard let bookmarkB64 = recordingBookmark, let bookmark = Data(base64Encoded: bookmarkB64) else {
-            errorMessage = "This folder has no security-scoped bookmark (picked before this was added, or the bookmark failed to save) — click Change… to re-select it."
-            return
-        }
         let filename = Scheduler.makeRecordingFilename(eventName: name.isEmpty ? "Test" : name)
         do {
-            try AntennaHeadClient.startRecording(bookmark: bookmark, filename: filename)
-            errorMessage = "Recording started — file will appear as \"\(filename)\" in the chosen folder.\n\nStop AntennaHead's LiveAudioServer recording by stopping the pipeline or waiting for the event to end."
+            try AntennaHeadClient.startRecording(filename: filename)
+            errorMessage = "Recording started — file will appear as \"\(filename)\" in AntennaHead's configured recording folder once you click Stop Test Recording."
         } catch {
             errorMessage = "Recording test failed: \(error)"
         }
     }
 
-    private func pickFolder() {
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = false
-        panel.canChooseDirectories = true
-        panel.canCreateDirectories = true
-        panel.prompt = "Select"
-        panel.message = "Choose a folder for recording files"
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        recordingDirectory = url.path
+    private func testStopRecording() {
         do {
-            // AntennaHead (sandboxed) needs this bookmark to gain write access
-            // to a folder picked here in unsandboxed ControlBooth — the plain
-            // path alone carries no sandbox grant.
-            let bookmark = try url.bookmarkData(options: .withSecurityScope,
-                                                 includingResourceValuesForKeys: nil, relativeTo: nil)
-            recordingBookmark = bookmark.base64EncodedString()
+            try AntennaHeadClient.stopRecording()
+            errorMessage = "Recording stopped — the finished file should now appear in AntennaHead's configured recording folder."
         } catch {
-            recordingBookmark = nil
-            errorMessage = "Couldn't create a security-scoped bookmark for that folder: \(error)\n\nRecording to it will fail until you pick it again."
+            errorMessage = "Recording stop failed: \(error)"
         }
     }
 

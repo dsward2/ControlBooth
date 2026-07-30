@@ -49,7 +49,7 @@ struct PipelineEditorView: View {
                         Label("Copy Pipeline", systemImage: "doc.on.doc")
                     }
                     .disabled(stages.isEmpty)
-                    .help("Copy all stages as `|`-joined CLI text")
+                    .help("Copy all stages as |-joined CLI text")
                     Button {
                         pastePipeline()
                     } label: {

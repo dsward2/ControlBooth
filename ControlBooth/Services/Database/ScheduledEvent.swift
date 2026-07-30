@@ -9,25 +9,24 @@ struct ScheduledEvent: Codable, Identifiable, Hashable, Equatable, FetchableReco
     var startTimeSeconds: Int    // seconds since midnight (0–86399)
     var durationSeconds: Int
     var isEnabled: Bool
-    var recordingDirectory: String?
-    /// Base64-encoded security-scoped bookmark for `recordingDirectory`, minted
-    /// when the folder was picked. AntennaHead (sandboxed) resolves this to gain
-    /// write access — the plain path alone carries no sandbox grant. `nil` for
-    /// events whose folder was picked before this existed; re-pick to mint one.
-    var recordingBookmark: String?
+    /// Whether this event's audio gets recorded. The destination folder is
+    /// not ControlBooth's to pick — it's configured once, globally, in
+    /// AntennaHead's own Settings (AntennaHead is sandboxed; a folder picked
+    /// here in unsandboxed ControlBooth carries no sandbox access grant it
+    /// could use).
+    var isRecordingEnabled: Bool
 
     static let databaseTableName = "scheduled_event"
 
     enum CodingKeys: String, CodingKey {
         case id
         case name
-        case pipelineId         = "pipeline_id"
-        case daysOfWeek         = "days_of_week"
-        case startTimeSeconds   = "start_time_seconds"
-        case durationSeconds    = "duration_seconds"
-        case isEnabled          = "is_enabled"
-        case recordingDirectory = "recording_directory"
-        case recordingBookmark  = "recording_bookmark"
+        case pipelineId          = "pipeline_id"
+        case daysOfWeek          = "days_of_week"
+        case startTimeSeconds    = "start_time_seconds"
+        case durationSeconds     = "duration_seconds"
+        case isEnabled           = "is_enabled"
+        case isRecordingEnabled  = "recording_enabled"
     }
 
     mutating func didInsert(_ inserted: InsertionSuccess) {
@@ -43,8 +42,7 @@ struct ScheduledEvent: Codable, Identifiable, Hashable, Equatable, FetchableReco
             startTimeSeconds: 9 * 3600,
             durationSeconds: 3600,
             isEnabled: true,
-            recordingDirectory: nil,
-            recordingBookmark: nil
+            isRecordingEnabled: false
         )
     }
 

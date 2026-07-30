@@ -25,42 +25,48 @@ struct StageEditorView: View {
                     Button {
                         chooseToolPath()
                     } label: {
-                        Image(systemName: "folder")
+                        Label("Choose tool with a file picker", systemImage: "folder")
+                            .labelStyle(.iconOnly)
                     }
                     .buttonStyle(.borderless)
                     .help("Choose tool with a file picker")
                     Button {
                         copyStage()
                     } label: {
-                        Image(systemName: "doc.on.doc")
+                        Label("Copy this stage as CLI text", systemImage: "doc.on.doc")
+                            .labelStyle(.iconOnly)
                     }
                     .buttonStyle(.borderless)
                     .help("Copy this stage as CLI text")
                     Button {
                         pasteStage()
                     } label: {
-                        Image(systemName: "doc.on.clipboard")
+                        Label("Paste a stage's CLI text over this one", systemImage: "doc.on.clipboard")
+                            .labelStyle(.iconOnly)
                     }
                     .buttonStyle(.borderless)
                     .help("Paste a stage's CLI text over this one")
                     Button {
                         onMoveUp()
                     } label: {
-                        Image(systemName: "chevron.up")
+                        Label("Move stage up", systemImage: "chevron.up")
+                            .labelStyle(.iconOnly)
                     }
                     .buttonStyle(.borderless)
                     .help("Move stage up")
                     Button {
                         onMoveDown()
                     } label: {
-                        Image(systemName: "chevron.down")
+                        Label("Move stage down", systemImage: "chevron.down")
+                            .labelStyle(.iconOnly)
                     }
                     .buttonStyle(.borderless)
                     .help("Move stage down")
                     Button {
                         onDelete()
                     } label: {
-                        Image(systemName: "trash")
+                        Label("Delete stage", systemImage: "trash")
+                            .labelStyle(.iconOnly)
                     }
                     .buttonStyle(.borderless)
                     .help("Delete stage")
@@ -74,7 +80,8 @@ struct StageEditorView: View {
                                 stage.arguments.remove(at: index)
                             }
                         } label: {
-                            Image(systemName: "minus.circle")
+                            Label("Remove argument", systemImage: "minus.circle")
+                                .labelStyle(.iconOnly)
                         }
                         .buttonStyle(.borderless)
                         .help("Remove argument")

@@ -41,16 +41,12 @@ final class Scheduler {
             guard !Task.isCancelled else { break }
 
             if let pipeline = pipelineStore.pipeline(withID: next.event.pipelineId) {
-                if next.event.recordingDirectory != nil {
-                    if let bookmarkB64 = next.event.recordingBookmark, let bookmark = Data(base64Encoded: bookmarkB64) {
-                        let filename = Self.makeRecordingFilename(eventName: next.event.name)
-                        do {
-                            try AntennaHeadClient.startRecording(bookmark: bookmark, filename: filename)
-                        } catch {
-                            lastError = "Recording start failed for '\(next.event.name)': \(error)"
-                        }
-                    } else {
-                        lastError = "Recording start failed for '\(next.event.name)': no security-scoped bookmark for its folder — re-pick it in the event's Change… button."
+                if next.event.isRecordingEnabled {
+                    let filename = Self.makeRecordingFilename(eventName: next.event.name)
+                    do {
+                        try AntennaHeadClient.startRecording(filename: filename)
+                    } catch {
+                        lastError = "Recording start failed for '\(next.event.name)': \(error)"
                     }
                 }
                 do {
@@ -60,7 +56,7 @@ final class Scheduler {
                 }
                 let pipelineId = next.event.pipelineId
                 let duration = next.event.durationSeconds
-                let hasRecording = next.event.recordingDirectory != nil
+                let hasRecording = next.event.isRecordingEnabled
                 Task { [weak self, weak runner] in
                     try? await Task.sleep(for: .seconds(TimeInterval(duration)))
                     if hasRecording {
