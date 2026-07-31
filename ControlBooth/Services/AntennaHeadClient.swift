@@ -8,12 +8,11 @@ import AppKit
 ///   'Stop'  stop listening    direct parameter: custom-task name
 ///   'Runs'  listening tasks   reply: list of the listening tasks' names
 ///   'RecS'  start recording   direct parameter: filename to create. Written
-///                             into the folder configured in AntennaHead's
-///                             own Settings — a folder picked here in
-///                             unsandboxed ControlBooth carries no sandbox
-///                             access grant AntennaHead (sandboxed) can use,
-///                             so the folder itself isn't ControlBooth's to
-///                             pick or send.
+///                             into the Recordings folder of the App Group
+///                             (`group.com.dsward.antennahead`) shared with
+///                             AntennaHead, so only a filename is needed —
+///                             the destination folder itself is fixed and
+///                             not ControlBooth's to pick or send.
 ///   'RecP'  stop recording    no parameters
 ///
 /// Sending waits synchronously for the reply (with a timeout), so call from
