@@ -13,6 +13,12 @@ import AppKit
 ///                             AntennaHead, so only a filename is needed —
 ///                             the destination folder itself is fixed and
 ///                             not ControlBooth's to pick or send.
+///                             optional 'Tone' parameter (boolean): when
+///                             true, AntennaHead fills any gap in real audio
+///                             with an audible test tone instead of silence,
+///                             so a manual test recording is verifiable by
+///                             ear even with no station tuned. Scheduled/live
+///                             recordings omit it and get silence filler.
 ///   'RecP'  stop recording    no parameters
 ///
 /// Sending waits synchronously for the reply (with a timeout), so call from
@@ -50,8 +56,13 @@ enum AntennaHeadClient {
         _ = try send(eventID: "Stop", directParameter: NSAppleEventDescriptor(string: name))
     }
 
-    static func startRecording(filename: String) throws {
-        _ = try send(eventID: "RecS", directParameter: NSAppleEventDescriptor(string: filename))
+    static func startRecording(filename: String, useToneFiller: Bool = false) throws {
+        var extraParams: [FourCharCode: NSAppleEventDescriptor] = [:]
+        if useToneFiller {
+            extraParams[keyUseToneFiller] = NSAppleEventDescriptor(boolean: true)
+        }
+        _ = try send(eventID: "RecS", directParameter: NSAppleEventDescriptor(string: filename),
+                     extraParams: extraParams)
     }
 
     static func stopRecording() throws {
@@ -68,7 +79,8 @@ enum AntennaHeadClient {
         return (1...list.numberOfItems).compactMap { list.atIndex($0)?.stringValue }
     }
 
-    private static func send(eventID: String, directParameter: NSAppleEventDescriptor?) throws -> NSAppleEventDescriptor {
+    private static func send(eventID: String, directParameter: NSAppleEventDescriptor?,
+                              extraParams: [FourCharCode: NSAppleEventDescriptor] = [:]) throws -> NSAppleEventDescriptor {
         // Use PID-based targeting so the event goes to exactly the running instance
         // we find, not an ambiguous bundle-ID lookup (which can hit a stale process).
         guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).first else {
@@ -84,6 +96,9 @@ enum AntennaHeadClient {
         )
         if let directParameter {
             event.setParam(directParameter, forKeyword: keyDirectObject)
+        }
+        for (keyword, descriptor) in extraParams {
+            event.setParam(descriptor, forKeyword: keyword)
         }
         let reply = try event.sendEvent(options: [.waitForReply], timeout: 8)
         if let errorNumber = reply.paramDescriptor(forKeyword: keyErrorNumber)?.int32Value,
@@ -103,4 +118,5 @@ enum AntennaHeadClient {
     private static let keyDirectObject = fourCC("----")
     private static let keyErrorNumber = fourCC("errn")
     private static let keyErrorString = fourCC("errs")
+    private static let keyUseToneFiller = fourCC("Tone")
 }

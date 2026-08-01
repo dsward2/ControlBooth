@@ -187,8 +187,8 @@ struct ScheduleEditorView: View {
     private func testRecording() {
         let filename = Scheduler.makeRecordingFilename(eventName: name.isEmpty ? "Test" : name)
         do {
-            try AntennaHeadClient.startRecording(filename: filename)
-            errorMessage = "Recording started — file will appear as \"\(filename)\" in AntennaHead's configured recording folder once you click Stop Test Recording."
+            try AntennaHeadClient.startRecording(filename: filename, useToneFiller: true)
+            errorMessage = "Recording started — you should hear a test tone in the recording once no live audio is present. File will appear as \"\(filename)\" in AntennaHead's configured recording folder once you click Stop Test Recording."
         } catch {
             errorMessage = "Recording test failed: \(error)"
         }
