@@ -1,6 +1,7 @@
 import Foundation
 import GRDB
 import Observation
+import SharedLogging
 
 @MainActor
 @Observable
@@ -21,7 +22,7 @@ final class ScheduledEventStore {
                 try ScheduledEvent.order(Column("id")).fetchAll(db)
             }
         } catch {
-            print("ScheduledEventStore - load failed: \(error)")
+            LogStore.shared.log(.error, source: "ScheduledEventStore", "load failed: \(error)")
             events = []
         }
     }

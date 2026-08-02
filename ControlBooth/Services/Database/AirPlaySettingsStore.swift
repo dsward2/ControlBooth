@@ -1,6 +1,7 @@
 import Foundation
 import GRDB
 import Observation
+import SharedLogging
 
 @MainActor
 @Observable
@@ -21,7 +22,7 @@ final class AirPlaySettingsStore {
                 try AirPlaySettings.fetchOne(db, key: AirPlaySettings.singletonID)
             } ?? .fallback()
         } catch {
-            print("AirPlaySettingsStore - load failed: \(error)")
+            LogStore.shared.log(.error, source: "AirPlaySettingsStore", "load failed: \(error)")
             settings = .fallback()
         }
     }

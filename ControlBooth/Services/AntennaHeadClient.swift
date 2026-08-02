@@ -1,4 +1,5 @@
 import AppKit
+import SharedLogging
 
 /// ControlBooth's sending half of the AppleEvents control channel with
 /// AntennaHead (see "AppleEvents control channel" in SETUP.md).
@@ -44,7 +45,8 @@ enum AntennaHeadClient {
 
     static var isAntennaHeadRunning: Bool {
         let apps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier)
-        print("AntennaHeadClient: isAntennaHeadRunning — found \(apps.count) instance(s): \(apps.map { $0.processIdentifier })")
+        let message = "isAntennaHeadRunning — found \(apps.count) instance(s): \(apps.map { $0.processIdentifier })"
+        Task { @MainActor in LogStore.shared.log(.info, source: "AntennaHeadClient", message) }
         return !apps.isEmpty
     }
 
@@ -86,7 +88,8 @@ enum AntennaHeadClient {
         guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).first else {
             throw ClientError.notRunning
         }
-        print("AntennaHeadClient: sending '\(eventID)' to AntennaHead PID \(app.processIdentifier)")
+        let logMessage = "sending '\(eventID)' to AntennaHead PID \(app.processIdentifier)"
+        Task { @MainActor in LogStore.shared.log(.info, source: "AntennaHeadClient", logMessage) }
         let event = NSAppleEventDescriptor.appleEvent(
             withEventClass: fourCC("AntH"),
             eventID: fourCC(eventID),

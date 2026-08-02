@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import SharedLogging
 
 @main
 struct ControlBoothApp: App {
@@ -10,6 +11,10 @@ struct ControlBoothApp: App {
     @State private var scheduler = Scheduler()
     @State private var airPlaySettingsStore = AirPlaySettingsStore()
     @State private var airPlayReceiverService = AirPlayReceiverService()
+
+    init() {
+        LogStore.shared.configure(appName: "ControlBooth")
+    }
 
     var body: some Scene {
         Window("ControlBooth", id: "main") {
@@ -36,12 +41,20 @@ struct ControlBoothApp: App {
             CommandGroup(replacing: .appInfo) {
                 OpenAboutWindowButton()
             }
+            CommandMenu("Window") {
+                OpenLogsWindowButton()
+            }
         }
 
         Window("About ControlBooth", id: "about") {
             AboutView()
         }
         .windowResizability(.contentSize)
+
+        Window("Logs", id: "logs") {
+            LogViewerView()
+        }
+        .defaultSize(width: 800, height: 500)
     }
 }
 
@@ -63,6 +76,17 @@ private struct OpenAboutWindowButton: View {
         Button("About ControlBooth") {
             openWindow(id: "about")
         }
+    }
+}
+
+private struct OpenLogsWindowButton: View {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Button("Logs") {
+            openWindow(id: "logs")
+        }
+        .keyboardShortcut("l", modifiers: [.command, .shift])
     }
 }
 

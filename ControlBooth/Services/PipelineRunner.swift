@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import PipelineRunner
+import SharedLogging
 
 /// Runs Pipeline records as chains of helper processes. Each running pipeline
 /// gets its own TaskPipelineManager, so several pipelines can run concurrently.
@@ -94,6 +95,9 @@ final class PipelineRunner {
         }
 
         let manager = TaskPipelineManager()
+        manager.onLog = { source, message in
+            LogStore.shared.log(.info, source: source, message)
+        }
         for stage in stages {
             let toolPath = Self.resolveToolPath(stage.path)
             guard FileManager.default.isExecutableFile(atPath: toolPath) else {

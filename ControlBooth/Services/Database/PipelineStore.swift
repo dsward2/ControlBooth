@@ -2,6 +2,7 @@ import Foundation
 import GRDB
 import Observation
 import SwiftUI
+import SharedLogging
 
 @MainActor
 @Observable
@@ -22,7 +23,7 @@ final class PipelineStore {
                 try Pipeline.order(Column("sort_order")).fetchAll(db)
             }
         } catch {
-            print("PipelineStore - load failed: \(error)")
+            LogStore.shared.log(.error, source: "PipelineStore", "load failed: \(error)")
             pipelines = []
         }
     }
@@ -59,7 +60,7 @@ final class PipelineStore {
             }
             load()
         } catch {
-            print("PipelineStore - move failed: \(error)")
+            LogStore.shared.log(.error, source: "PipelineStore", "move failed: \(error)")
         }
     }
 

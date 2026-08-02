@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import AirPlayReceiver
+import SharedLogging
 
 /// Thin wrapper owning the single AirPlayReceiverController instance,
 /// applying ControlBooth's persisted AirPlaySettings to it. Unlike Pipeline
@@ -17,6 +18,9 @@ final class AirPlayReceiverService {
 
     init() {
         controller = AirPlayReceiverController(configuration: AirPlayReceiverService.makeConfiguration(from: .fallback()))
+        controller.onLog = { source, message in
+            LogStore.shared.log(.info, source: source, message)
+        }
     }
 
     func stopAll() {

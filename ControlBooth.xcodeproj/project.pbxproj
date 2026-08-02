@@ -12,6 +12,7 @@
 		0EAEB9E12FFAA29A00BA711A /* PipelineRunner in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEB9E02FFAA29A00BA711A /* PipelineRunner */; };
 		0EAEBB022FFAC00000BA711A /* PCMUDPSender in CopyFiles */ = {isa = PBXBuildFile; productRef = 0EAEBB012FFAC00000BA711A /* PCMUDPSender */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		0EAEBC032FFAD00000BA711A /* AirPlayReceiver in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEBC022FFAD00000BA711A /* AirPlayReceiver */; };
+		5F5D5331CBCE13CD8A221237 /* SharedLogging in Frameworks */ = {isa = PBXBuildFile; productRef = A578DEEA8DE804E207930937 /* SharedLogging */; };
 		1635675B4339037BAEBC13E9 /* AUProcessor in Frameworks */ = {isa = PBXBuildFile; productRef = 0C450AC81DF406E297AA5C0F /* AUProcessor */; };
 		9F90C984CFAC16CD9055D9F2 /* AUProcessor in CopyFiles */ = {isa = PBXBuildFile; productRef = 0C450AC81DF406E297AA5C0F /* AUProcessor */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		FFE9A00AFE4C0412E8B896E8 /* AudioInputCapture in Frameworks */ = {isa = PBXBuildFile; productRef = B43A6DCA67C7CB4EC12E5AFE /* AudioInputCapture */; };
@@ -220,6 +221,7 @@
 				0EAEB9E12FFAA29A00BA711A /* PipelineRunner in Frameworks */,
 				0EAEB9B42FF9865E00BA711A /* GRDB in Frameworks */,
 				0EAEBC032FFAD00000BA711A /* AirPlayReceiver in Frameworks */,
+				5F5D5331CBCE13CD8A221237 /* SharedLogging in Frameworks */,
 				1635675B4339037BAEBC13E9 /* AUProcessor in Frameworks */,
 				FFE9A00AFE4C0412E8B896E8 /* AudioInputCapture in Frameworks */,
 				232D8F546066DC5AD8B07479 /* FMDeemphasis in Frameworks */,
@@ -334,6 +336,7 @@
 				0EAEB9E02FFAA29A00BA711A /* PipelineRunner */,
 				0EAEBB012FFAC00000BA711A /* PCMUDPSender */,
 				0EAEBC022FFAD00000BA711A /* AirPlayReceiver */,
+				A578DEEA8DE804E207930937 /* SharedLogging */,
 				0C450AC81DF406E297AA5C0F /* AUProcessor */,
 				B43A6DCA67C7CB4EC12E5AFE /* AudioInputCapture */,
 				84525C229CAA1ABF25B01E0C /* FMDeemphasis */,
@@ -450,6 +453,7 @@
 				0EAEB9B22FF9865E00BA711A /* XCRemoteSwiftPackageReference "GRDB" */,
 				F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */,
 				0EAEBC012FFAD00000BA711A /* XCLocalSwiftPackageReference "../AirPlayReceiver" */,
+				F5FAD7DC4E894EF44C90EEB6 /* XCLocalSwiftPackageReference "../SharedLogging" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0EAEB94F2FF95D2500BA711A /* Products */;
@@ -947,6 +951,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../PipelineHelpers;
 		};
+		F5FAD7DC4E894EF44C90EEB6 /* XCLocalSwiftPackageReference "../SharedLogging" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../SharedLogging;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -980,6 +988,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 0EAEBC012FFAD00000BA711A /* XCLocalSwiftPackageReference "../AirPlayReceiver" */;
 			productName = AirPlayReceiver;
+		};
+		A578DEEA8DE804E207930937 /* SharedLogging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F5FAD7DC4E894EF44C90EEB6 /* XCLocalSwiftPackageReference "../SharedLogging" */;
+			productName = SharedLogging;
 		};
 		0C450AC81DF406E297AA5C0F /* AUProcessor */ = {
 			isa = XCSwiftPackageProductDependency;
