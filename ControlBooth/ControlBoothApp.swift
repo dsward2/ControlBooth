@@ -41,8 +41,13 @@ struct ControlBoothApp: App {
             CommandGroup(replacing: .appInfo) {
                 OpenAboutWindowButton()
             }
-            CommandMenu("Window") {
-                OpenLogsWindowButton()
+            // Folded into the standard Window menu (rather than a separate
+            // custom menu) so there's only ever one "Window" menu. No custom
+            // "Logs" entry here: SwiftUI already lists every declared Window
+            // scene (including "Logs") in the native window list above this
+            // group, so a second "Logs" command would itself be a duplicate.
+            CommandGroup(after: .windowList) {
+                RevealRecordingsFolderButton()
             }
         }
 
@@ -79,14 +84,21 @@ private struct OpenAboutWindowButton: View {
     }
 }
 
-private struct OpenLogsWindowButton: View {
-    @Environment(\.openWindow) private var openWindow
-
+private struct RevealRecordingsFolderButton: View {
     var body: some View {
-        Button("Logs") {
-            openWindow(id: "logs")
+        Button("Show Recordings Folder in Finder") {
+            guard let url = SharedRecordingFolder.url else {
+                let alert = NSAlert()
+                alert.alertStyle = .warning
+                alert.messageText = "Recordings folder unavailable"
+                alert.informativeText = "The shared recording folder isn't available — check ControlBooth's App Group entitlement."
+                alert.addButton(withTitle: "OK")
+                alert.runModal()
+                return
+            }
+            NSWorkspace.shared.open(url)
         }
-        .keyboardShortcut("l", modifiers: [.command, .shift])
+        .keyboardShortcut("r", modifiers: [.command, .shift])
     }
 }
 
