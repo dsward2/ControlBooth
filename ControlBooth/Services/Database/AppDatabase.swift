@@ -32,6 +32,11 @@ final class AppDatabase {
                 t.column("stages_json", .text).notNull()
                 t.column("destination_host", .text).notNull().defaults(to: "127.0.0.1")
                 t.column("destination_port", .integer).notNull().defaults(to: 6019)
+                // Added here (rather than left to v5_pipeline_sort_order alone) because
+                // seedExamplePipelines, called below, inserts rows with a sort_order
+                // value — the column has to exist before that insert runs, which for a
+                // brand-new database is within this same migration.
+                t.column("sort_order", .integer).notNull().defaults(to: 0)
             }
             try seedExamplePipelines(db)
         }
@@ -52,9 +57,11 @@ final class AppDatabase {
             }
         }
         m.registerMigration("v5_pipeline_sort_order") { db in
-            try db.alter(table: "pipeline") { t in
-                t.add(column: "sort_order", .integer).notNull().defaults(to: 0)
-            }
+            // sort_order itself now ships in v1_pipeline's CREATE TABLE (needed
+            // there for the example-pipeline seed insert on a brand-new database).
+            // This migration only remains to backfill it — from its column default
+            // of 0 to a distinct value per row — on databases that already existed
+            // before sort_order was introduced.
             try db.execute(sql: "UPDATE pipeline SET sort_order = id")
         }
         m.registerMigration("v4_airplay_receiver_settings") { db in
@@ -137,6 +144,19 @@ final class AppDatabase {
             )
         ]
         try speech.insert(db)
+
+        // PCMFilePlayer decodes to 48 kHz/2 ch S16LE by default, so — unlike
+        // the speech example above — this needs no extra sox resample stage.
+        // Points at a file already in the repo (AntennaHead's Web assets) so
+        // the example plays out of the box.
+        var filePlayback = Pipeline.prototype(name: "File Playback Test (example)")
+        filePlayback.stages = [
+            PipelineStage(
+                path: "\(pipelineHelpersRoot)/.build/arm64-apple-macosx/release/PCMFilePlayer",
+                arguments: ["--file", "\(antennaHeadRoot)/Web/Monitor_Beacon.mp3", "--repeat", "--gap", "2"]
+            )
+        ]
+        try filePlayback.insert(db)
 
         // Template for the real use case: nrsc5 can't run inside sandboxed
         // AntennaHead, but ControlBooth is unsandboxed. nrsc5 emits WAV on stdout
