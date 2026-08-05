@@ -14,34 +14,50 @@ stages can be any executable on disk — unsigned Homebrew tools included.
 ## One-time Xcode wiring (manual)
 
 The Swift sources live in buildable folders and are picked up automatically.
-Two package dependencies and one build phase must be added by hand:
+Four package dependencies and two build phases must be added by hand:
+
+**PipelineHelpers, SharedLogging, and AirPlayReceiver are local Swift
+packages**, added below via "Add Local…" rather than a GitHub URL, and
+`ControlBooth.xcodeproj` stores them as relative paths (`../PipelineHelpers`,
+`../SharedLogging`, `../AirPlayReceiver` — see the `XCLocalSwiftPackageReference`
+entries in `project.pbxproj`). That only resolves if this repo is checked out
+with those three as sibling directories — i.e. the layout the
+[antennahead-workspace](https://github.com/dsward2/antennahead-workspace)
+umbrella project's `bootstrap.sh` sets up. Use that instead of cloning
+ControlBooth standalone if you're wiring these local packages by hand.
 
 1. **GRDB** — Project → ControlBooth → Package Dependencies → **+** →
    search `https://github.com/groue/GRDB.swift` → Add Package → add the
    **GRDB** library product to the ControlBooth target.
 
 2. **PipelineHelpers (local package)** — Package Dependencies → **+** →
-   **Add Local…** → select
-   `…/Claude working directory/PipelineHelpers`.
+   **Add Local…** → select the sibling `PipelineHelpers` checkout (e.g.
+   `…/antennahead-umbrella/PipelineHelpers`).
    When prompted for products, add the **PipelineRunner** library to the
    ControlBooth target (it provides `TaskPipelineManager`/`TaskItem`, which
    are no longer copied into this repo). The executable products need no
    target membership — the Copy Files phase below builds and embeds them.
 
-3. **Copy Files phase** — ControlBooth target → Build Phases → **+** →
+3. **SharedLogging (local package)** — Package Dependencies → **+** →
+   **Add Local…** → select the sibling `SharedLogging` checkout (e.g.
+   `…/antennahead-umbrella/SharedLogging`). Add the **SharedLogging** library
+   product to the ControlBooth target. It provides the shared `LogStore` and
+   viewer window used by AntennaHead too (see `SharedLogging/Package.swift`).
+
+4. **Copy Files phase** — ControlBooth target → Build Phases → **+** →
    New Copy Files Phase:
    - Destination: **Wrapper**
    - Subpath: `Contents/Helpers`
    - **+** → add the **PCMUDPSender** product (from the local package).
 
-4. **AirPlayReceiver (local package)** — Package Dependencies → **+** →
+5. **AirPlayReceiver (local package)** — Package Dependencies → **+** →
    **Add Local…** → select `…/antennahead-umbrella/AirPlayReceiver`. Add the
    **AirPlayReceiver** library product to the ControlBooth target. It provides
    `AirPlayReceiverController`, wrapping a vendored `shairport-sync` (AirPlay 1
    / RAOP only — see the package's own README) that decodes into the same
    `sox → PCMUDPSender` chain as everything else.
 
-5. **"Embed AirPlayReceiver Helper" Run Script phase** — ControlBooth target →
+6. **"Embed AirPlayReceiver Helper" Run Script phase** — ControlBooth target →
    Build Phases → **+** → New Run Script Phase, positioned after the Copy
    Files phase above. Copies three things into place, since ControlBooth
    doesn't otherwise bundle any of them:
