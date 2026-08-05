@@ -7,36 +7,36 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		04682A61C5430A617C6A4387 /* PCMSpeechSynth in Frameworks */ = {isa = PBXBuildFile; productRef = E87D80B587E6E414ACF764FE /* PCMSpeechSynth */; };
+		0DB533FFB7D9D2B75A6AB91F /* PCMJitterBuffer in CopyFiles */ = {isa = PBXBuildFile; productRef = 1AD803BDA4DC219FF701FB37 /* PCMJitterBuffer */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		0E2AEE3330106E75007F4143 /* PCMUDPSender in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEBB012FFAC00000BA711A /* PCMUDPSender */; };
 		0EAEB9B42FF9865E00BA711A /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEB9B32FF9865E00BA711A /* GRDB */; };
 		0EAEB9E12FFAA29A00BA711A /* PipelineRunner in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEB9E02FFAA29A00BA711A /* PipelineRunner */; };
 		0EAEBB022FFAC00000BA711A /* PCMUDPSender in CopyFiles */ = {isa = PBXBuildFile; productRef = 0EAEBB012FFAC00000BA711A /* PCMUDPSender */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		0EAEBC032FFAD00000BA711A /* AirPlayReceiver in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEBC022FFAD00000BA711A /* AirPlayReceiver */; };
-		5F5D5331CBCE13CD8A221237 /* SharedLogging in Frameworks */ = {isa = PBXBuildFile; productRef = A578DEEA8DE804E207930937 /* SharedLogging */; };
-		1635675B4339037BAEBC13E9 /* AUProcessor in Frameworks */ = {isa = PBXBuildFile; productRef = 0C450AC81DF406E297AA5C0F /* AUProcessor */; };
-		9F90C984CFAC16CD9055D9F2 /* AUProcessor in CopyFiles */ = {isa = PBXBuildFile; productRef = 0C450AC81DF406E297AA5C0F /* AUProcessor */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		FFE9A00AFE4C0412E8B896E8 /* AudioInputCapture in Frameworks */ = {isa = PBXBuildFile; productRef = B43A6DCA67C7CB4EC12E5AFE /* AudioInputCapture */; };
 		10352754EA18CC5C69347D77 /* AudioInputCapture in CopyFiles */ = {isa = PBXBuildFile; productRef = B43A6DCA67C7CB4EC12E5AFE /* AudioInputCapture */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		1635675B4339037BAEBC13E9 /* AUProcessor in Frameworks */ = {isa = PBXBuildFile; productRef = 0C450AC81DF406E297AA5C0F /* AUProcessor */; };
 		232D8F546066DC5AD8B07479 /* FMDeemphasis in Frameworks */ = {isa = PBXBuildFile; productRef = 84525C229CAA1ABF25B01E0C /* FMDeemphasis */; };
-		5A635DCB2DFC9824FC762066 /* FMDeemphasis in CopyFiles */ = {isa = PBXBuildFile; productRef = 84525C229CAA1ABF25B01E0C /* FMDeemphasis */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		AA89A95258B8AD165649D034 /* PCMMixer in Frameworks */ = {isa = PBXBuildFile; productRef = 97F181EF50161793627B259B /* PCMMixer */; };
-		B55DF438D08A4992D16111A5 /* PCMMixer in CopyFiles */ = {isa = PBXBuildFile; productRef = 97F181EF50161793627B259B /* PCMMixer */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		8C64FD55DBB488C6043CA030 /* PCMPassthrough in Frameworks */ = {isa = PBXBuildFile; productRef = 5B1EA0345C776C5696C7EA2F /* PCMPassthrough */; };
-		7AC187A53A2FACC0B1D039C9 /* PCMPassthrough in CopyFiles */ = {isa = PBXBuildFile; productRef = 5B1EA0345C776C5696C7EA2F /* PCMPassthrough */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		04682A61C5430A617C6A4387 /* PCMSpeechSynth in Frameworks */ = {isa = PBXBuildFile; productRef = E87D80B587E6E414ACF764FE /* PCMSpeechSynth */; };
-		64DF77E2925A3D6D828B8EC1 /* PCMSpeechSynth in CopyFiles */ = {isa = PBXBuildFile; productRef = E87D80B587E6E414ACF764FE /* PCMSpeechSynth */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		ABB3E799D7AF49A5C89A4D1D /* PCMUDPReceiver in Frameworks */ = {isa = PBXBuildFile; productRef = E99738898D9599DAC90193CC /* PCMUDPReceiver */; };
 		5358E35F01A032CD673C6D51 /* PCMUDPReceiver in CopyFiles */ = {isa = PBXBuildFile; productRef = E99738898D9599DAC90193CC /* PCMUDPReceiver */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		87C3FE52371D7713823E1083 /* PCMJitterBuffer in Frameworks */ = {isa = PBXBuildFile; productRef = 1AD803BDA4DC219FF701FB37 /* PCMJitterBuffer */; };
-		0DB533FFB7D9D2B75A6AB91F /* PCMJitterBuffer in CopyFiles */ = {isa = PBXBuildFile; productRef = 1AD803BDA4DC219FF701FB37 /* PCMJitterBuffer */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		682B2C68708AF6B3ABA5A039 /* LiveAudioRecorder in Frameworks */ = {isa = PBXBuildFile; productRef = 18785847439A147EDA809002 /* LiveAudioRecorder */; };
-		F3CA606A9E82643AF40DB604 /* LiveAudioRecorder in CopyFiles */ = {isa = PBXBuildFile; productRef = 18785847439A147EDA809002 /* LiveAudioRecorder */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		EBE4EA8F13C94E588585C360 /* rtl_fm_localradio.m in Sources */ = {isa = PBXBuildFile; fileRef = 35BF97FA87664F8BB526D86A /* rtl_fm_localradio.m */; };
-		C01364B12A20465482BA3899 /* convenience.c in Sources */ = {isa = PBXBuildFile; fileRef = A17010DEBCF7482281577816 /* convenience.c */; };
-		7B08C9EEA4924B508E937655 /* rtl_convenience.c in Sources */ = {isa = PBXBuildFile; fileRef = E8AC65256C2D46D683EA14FE /* rtl_convenience.c */; };
-		DB5A20EE6CFE4048B722772C /* rtl_fm_localradio in CopyFiles */ = {isa = PBXBuildFile; fileRef = 049830B9029346CEA2B6CA57 /* rtl_fm_localradio */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		CF775919938149B7836375F4 /* libusb-1.0.0.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = A80167D04BF74E1288A14B9B /* libusb-1.0.0.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		5A635DCB2DFC9824FC762066 /* FMDeemphasis in CopyFiles */ = {isa = PBXBuildFile; productRef = 84525C229CAA1ABF25B01E0C /* FMDeemphasis */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		5F5D5331CBCE13CD8A221237 /* SharedLogging in Frameworks */ = {isa = PBXBuildFile; productRef = A578DEEA8DE804E207930937 /* SharedLogging */; };
+		64DF77E2925A3D6D828B8EC1 /* PCMSpeechSynth in CopyFiles */ = {isa = PBXBuildFile; productRef = E87D80B587E6E414ACF764FE /* PCMSpeechSynth */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		66F829E0E38840F09B6E93FE /* librtlsdr.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 122003304CD5476295D4A901 /* librtlsdr.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		682B2C68708AF6B3ABA5A039 /* LiveAudioRecorder in Frameworks */ = {isa = PBXBuildFile; productRef = 18785847439A147EDA809002 /* LiveAudioRecorder */; };
+		7AC187A53A2FACC0B1D039C9 /* PCMPassthrough in CopyFiles */ = {isa = PBXBuildFile; productRef = 5B1EA0345C776C5696C7EA2F /* PCMPassthrough */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		7B08C9EEA4924B508E937655 /* rtl_convenience.c in Sources */ = {isa = PBXBuildFile; fileRef = E8AC65256C2D46D683EA14FE /* rtl_convenience.c */; };
+		87C3FE52371D7713823E1083 /* PCMJitterBuffer in Frameworks */ = {isa = PBXBuildFile; productRef = 1AD803BDA4DC219FF701FB37 /* PCMJitterBuffer */; };
+		8C64FD55DBB488C6043CA030 /* PCMPassthrough in Frameworks */ = {isa = PBXBuildFile; productRef = 5B1EA0345C776C5696C7EA2F /* PCMPassthrough */; };
+		9F90C984CFAC16CD9055D9F2 /* AUProcessor in CopyFiles */ = {isa = PBXBuildFile; productRef = 0C450AC81DF406E297AA5C0F /* AUProcessor */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		AA89A95258B8AD165649D034 /* PCMMixer in Frameworks */ = {isa = PBXBuildFile; productRef = 97F181EF50161793627B259B /* PCMMixer */; };
+		ABB3E799D7AF49A5C89A4D1D /* PCMUDPReceiver in Frameworks */ = {isa = PBXBuildFile; productRef = E99738898D9599DAC90193CC /* PCMUDPReceiver */; };
+		B55DF438D08A4992D16111A5 /* PCMMixer in CopyFiles */ = {isa = PBXBuildFile; productRef = 97F181EF50161793627B259B /* PCMMixer */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		C01364B12A20465482BA3899 /* convenience.c in Sources */ = {isa = PBXBuildFile; fileRef = A17010DEBCF7482281577816 /* convenience.c */; };
+		CF775919938149B7836375F4 /* libusb-1.0.0.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = A80167D04BF74E1288A14B9B /* libusb-1.0.0.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		DB5A20EE6CFE4048B722772C /* rtl_fm_localradio in CopyFiles */ = {isa = PBXBuildFile; fileRef = 049830B9029346CEA2B6CA57 /* rtl_fm_localradio */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		EBE4EA8F13C94E588585C360 /* rtl_fm_localradio.m in Sources */ = {isa = PBXBuildFile; fileRef = 35BF97FA87664F8BB526D86A /* rtl_fm_localradio.m */; };
+		F3CA606A9E82643AF40DB604 /* LiveAudioRecorder in CopyFiles */ = {isa = PBXBuildFile; productRef = 18785847439A147EDA809002 /* LiveAudioRecorder */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		FFE9A00AFE4C0412E8B896E8 /* AudioInputCapture in Frameworks */ = {isa = PBXBuildFile; productRef = B43A6DCA67C7CB4EC12E5AFE /* AudioInputCapture */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -98,100 +98,16 @@
 		};
 /* End PBXCopyFilesBuildPhase section */
 
-/* Begin PBXShellScriptBuildPhase section */
-		0EAEBC052FFAD00000BA711A /* Embed AirPlayReceiver Helper */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/../AntennaHead/sox",
-				"$(SRCROOT)/../AntennaHead/stereodemux",
-				"$(SRCROOT)/../AntennaHead/libliquid.dylib",
-				"$(SRCROOT)/../AntennaHead/libfec.dylib",
-				"$(SRCROOT)/../AntennaHead/libfftw3f.3.dylib",
-				"$(SRCROOT)/../AntennaHead/libsndfile.1.dylib",
-				"$(SRCROOT)/../AntennaHead/libFLAC.14.dylib",
-				"$(SRCROOT)/../AntennaHead/libvorbisenc.2.dylib",
-				"$(SRCROOT)/../AntennaHead/libmp3lame.0.dylib",
-				"$(SRCROOT)/../AntennaHead/libogg.0.dylib",
-				"$(SRCROOT)/../AntennaHead/libmpg123.0.dylib",
-				"$(SRCROOT)/../AntennaHead/libopus.0.dylib",
-				"$(SRCROOT)/../AntennaHead/libvorbis.0.dylib",
-				"$(BUILT_PRODUCTS_DIR)/AirPlayReceiver_AirPlayReceiver.bundle/Contents/Resources/Resources/shairport-sync",
-				"$(BUILT_PRODUCTS_DIR)/AirPlayReceiver_AirPlayReceiver.bundle/Contents/Resources/Resources/Frameworks/libconfig.11.dylib",
-				"$(BUILT_PRODUCTS_DIR)/AirPlayReceiver_AirPlayReceiver.bundle/Contents/Resources/Resources/Frameworks/libcrypto.3.dylib",
-				"$(BUILT_PRODUCTS_DIR)/AirPlayReceiver_AirPlayReceiver.bundle/Contents/Resources/Resources/Frameworks/libiconv.2.dylib",
-				"$(BUILT_PRODUCTS_DIR)/AirPlayReceiver_AirPlayReceiver.bundle/Contents/Resources/Resources/Frameworks/libintl.8.dylib",
-				"$(BUILT_PRODUCTS_DIR)/AirPlayReceiver_AirPlayReceiver.bundle/Contents/Resources/Resources/Frameworks/libpopt.0.dylib",
-				"$(BUILT_PRODUCTS_DIR)/AirPlayReceiver_AirPlayReceiver.bundle/Contents/Resources/Resources/Frameworks/libsoxr.0.dylib",
-				"$(BUILT_PRODUCTS_DIR)/AirPlayReceiver_AirPlayReceiver.bundle/Contents/Resources/Resources/Frameworks/libssl.3.dylib",
-				"$(BUILT_PRODUCTS_DIR)/AirPlayReceiver_AirPlayReceiver.bundle/Contents/Resources/Resources/Frameworks/libz.1.dylib",
-			);
-			name = "Embed AirPlayReceiver Helper";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Helpers/sox",
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Helpers/stereodemux",
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libliquid.dylib",
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libfec.dylib",
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libfftw3f.3.dylib",
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libsndfile.1.dylib",
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libFLAC.14.dylib",
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libvorbisenc.2.dylib",
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libmp3lame.0.dylib",
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libogg.0.dylib",
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libmpg123.0.dylib",
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libopus.0.dylib",
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libvorbis.0.dylib",
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Helpers/shairport-sync",
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libconfig.11.dylib",
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libcrypto.3.dylib",
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libiconv.2.dylib",
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libintl.8.dylib",
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libpopt.0.dylib",
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libsoxr.0.dylib",
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libssl.3.dylib",
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libz.1.dylib",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "set -e\n# shairport-sync and its dylibs are already ad-hoc signed by\n# scripts/build-shairport-sync.sh at vendor time; cp preserves that\n# signature. Both re-codesigning and directory-globbing here would need\n# filesystem access the script-phase sandbox (ENABLE_USER_SCRIPT_SANDBOXING)\n# denies since only the exact declared input/output paths are permitted.\nBUNDLE=\"${BUILT_PRODUCTS_DIR}/AirPlayReceiver_AirPlayReceiver.bundle/Contents/Resources/Resources\"\nHELPERS_DIR=\"${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Contents/Helpers\"\nFRAMEWORKS_DIR=\"${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Contents/Frameworks\"\nmkdir -p \"${HELPERS_DIR}\" \"${FRAMEWORKS_DIR}\"\n\n# ControlBooth doesn't otherwise bundle sox (its user pipelines reference\n# tools by absolute path), but AirPlayReceiverController's resample stage\n# needs Contents/Helpers/sox like AntennaHead already has; vendor it from\n# the sibling AntennaHead checkout in this umbrella.\ncp -f \"${SRCROOT}/../AntennaHead/sox\" \"${HELPERS_DIR}/sox\"\nchmod +x \"${HELPERS_DIR}/sox\"\n\n# stereodemux (FM-stereo multiplex decoder) is likewise only vendored as a\n# plain binary in the AntennaHead checkout, not an SPM package product;\n# vendor it the same way as sox above, plus its own dylib dependency closure\n# (liquid-dsp for the demod math, libsndfile and the audio codecs it links,\n# none of which ControlBooth otherwise bundles).\ncp -f \"${SRCROOT}/../AntennaHead/stereodemux\" \"${HELPERS_DIR}/stereodemux\"\nchmod +x \"${HELPERS_DIR}/stereodemux\"\n\nfor name in libliquid.dylib libfec.dylib libfftw3f.3.dylib libsndfile.1.dylib libFLAC.14.dylib libvorbisenc.2.dylib libmp3lame.0.dylib libogg.0.dylib libmpg123.0.dylib libopus.0.dylib libvorbis.0.dylib; do\n  cp -f \"${SRCROOT}/../AntennaHead/${name}\" \"${FRAMEWORKS_DIR}/${name}\"\ndone\n\ncp -f \"${BUNDLE}/shairport-sync\" \"${HELPERS_DIR}/shairport-sync\"\nchmod +x \"${HELPERS_DIR}/shairport-sync\"\n\nfor name in libconfig.11.dylib libcrypto.3.dylib libiconv.2.dylib libintl.8.dylib libpopt.0.dylib libsoxr.0.dylib libssl.3.dylib libz.1.dylib; do\n  cp -f \"${BUNDLE}/Frameworks/${name}\" \"${FRAMEWORKS_DIR}/${name}\"\ndone\n";
-		};
-		497D91CC25A947DBB606EB31 /* run install_name_tool */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "run install_name_tool";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# Must be positioned after Link Binary With Libraries, and before code-signing\nBIN=\"${TARGET_BUILD_DIR}/${EXECUTABLE_PATH}\"\n   install_name_tool -change \\\n       /opt/local/lib/libusb-1.0.0.dylib \\\n       @rpath/libusb-1.0.0.dylib \\\n       \"$BIN\"\n";
-		};
-/* End PBXShellScriptBuildPhase section */
-
 /* Begin PBXFileReference section */
+		049830B9029346CEA2B6CA57 /* rtl_fm_localradio */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = rtl_fm_localradio; sourceTree = BUILT_PRODUCTS_DIR; };
 		0EAEB94E2FF95D2500BA711A /* ControlBooth.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ControlBooth.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0EAEB95B2FF95D2700BA711A /* ControlBoothTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ControlBoothTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0EAEB9652FF95D2700BA711A /* ControlBoothUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ControlBoothUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		049830B9029346CEA2B6CA57 /* rtl_fm_localradio */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = rtl_fm_localradio; sourceTree = BUILT_PRODUCTS_DIR; };
+		122003304CD5476295D4A901 /* librtlsdr.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = librtlsdr.framework; path = "librtlsdr.xcframework/macos-arm64/librtlsdr.framework"; sourceTree = "<group>"; };
 		35BF97FA87664F8BB526D86A /* rtl_fm_localradio.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = rtl_fm_localradio.m; sourceTree = "<group>"; };
 		A17010DEBCF7482281577816 /* convenience.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = convenience.c; sourceTree = "<group>"; };
-		E8AC65256C2D46D683EA14FE /* rtl_convenience.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = rtl_convenience.c; sourceTree = "<group>"; };
 		A80167D04BF74E1288A14B9B /* libusb-1.0.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = "libusb-1.0.0.dylib"; sourceTree = "<group>"; };
-		122003304CD5476295D4A901 /* librtlsdr.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = "librtlsdr.framework"; path = "librtlsdr.xcframework/macos-arm64/librtlsdr.framework"; sourceTree = "<group>"; };
+		E8AC65256C2D46D683EA14FE /* rtl_convenience.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = rtl_convenience.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -491,6 +407,132 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		0EAEBC052FFAD00000BA711A /* Embed AirPlayReceiver Helper */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/../AntennaHead/sox",
+				"$(SRCROOT)/../AntennaHead/stereodemux",
+				"$(SRCROOT)/../AntennaHead/libliquid.dylib",
+				"$(SRCROOT)/../AntennaHead/libfec.dylib",
+				"$(SRCROOT)/../AntennaHead/libfftw3f.3.dylib",
+				"$(SRCROOT)/../AntennaHead/libsndfile.1.dylib",
+				"$(SRCROOT)/../AntennaHead/libFLAC.14.dylib",
+				"$(SRCROOT)/../AntennaHead/libvorbisenc.2.dylib",
+				"$(SRCROOT)/../AntennaHead/libmp3lame.0.dylib",
+				"$(SRCROOT)/../AntennaHead/libogg.0.dylib",
+				"$(SRCROOT)/../AntennaHead/libmpg123.0.dylib",
+				"$(SRCROOT)/../AntennaHead/libopus.0.dylib",
+				"$(SRCROOT)/../AntennaHead/libvorbis.0.dylib",
+				"$(BUILT_PRODUCTS_DIR)/AirPlayReceiver_AirPlayReceiver.bundle/Contents/Resources/Resources/shairport-sync",
+				"$(BUILT_PRODUCTS_DIR)/AirPlayReceiver_AirPlayReceiver.bundle/Contents/Resources/Resources/Frameworks/libconfig.11.dylib",
+				"$(BUILT_PRODUCTS_DIR)/AirPlayReceiver_AirPlayReceiver.bundle/Contents/Resources/Resources/Frameworks/libcrypto.3.dylib",
+				"$(BUILT_PRODUCTS_DIR)/AirPlayReceiver_AirPlayReceiver.bundle/Contents/Resources/Resources/Frameworks/libiconv.2.dylib",
+				"$(BUILT_PRODUCTS_DIR)/AirPlayReceiver_AirPlayReceiver.bundle/Contents/Resources/Resources/Frameworks/libintl.8.dylib",
+				"$(BUILT_PRODUCTS_DIR)/AirPlayReceiver_AirPlayReceiver.bundle/Contents/Resources/Resources/Frameworks/libpopt.0.dylib",
+				"$(BUILT_PRODUCTS_DIR)/AirPlayReceiver_AirPlayReceiver.bundle/Contents/Resources/Resources/Frameworks/libsoxr.0.dylib",
+				"$(BUILT_PRODUCTS_DIR)/AirPlayReceiver_AirPlayReceiver.bundle/Contents/Resources/Resources/Frameworks/libssl.3.dylib",
+				"$(BUILT_PRODUCTS_DIR)/AirPlayReceiver_AirPlayReceiver.bundle/Contents/Resources/Resources/Frameworks/libz.1.dylib",
+				"$(SRCROOT)/ffmpeg",
+				"$(SRCROOT)/libavcodec.62.dylib",
+				"$(SRCROOT)/libavfilter.11.dylib",
+				"$(SRCROOT)/libavformat.62.dylib",
+				"$(SRCROOT)/libavutil.60.dylib",
+				"$(SRCROOT)/libswresample.6.dylib",
+				"$(SRCROOT)/libgnutls.30.dylib",
+				"$(SRCROOT)/libnettle.8.dylib",
+				"$(SRCROOT)/libhogweed.6.dylib",
+				"$(SRCROOT)/libgmp.10.dylib",
+				"$(SRCROOT)/libp11-kit.0.dylib",
+				"$(SRCROOT)/libtasn1.6.dylib",
+				"$(SRCROOT)/libidn2.0.dylib",
+				"$(SRCROOT)/libunistring.5.dylib",
+				"$(SRCROOT)/libbrotlicommon.1.dylib",
+				"$(SRCROOT)/libbrotlidec.1.dylib",
+				"$(SRCROOT)/libbrotlienc.1.dylib",
+				"$(SRCROOT)/libbz2.1.0.dylib",
+				"$(SRCROOT)/liblzma.5.dylib",
+				"$(SRCROOT)/libffi.8.dylib",
+				"$(SRCROOT)/libzstd.1.dylib",
+			);
+			name = "Embed AirPlayReceiver Helper";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Helpers/sox",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Helpers/stereodemux",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libliquid.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libfec.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libfftw3f.3.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libsndfile.1.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libFLAC.14.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libvorbisenc.2.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libmp3lame.0.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libogg.0.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libmpg123.0.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libopus.0.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libvorbis.0.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Helpers/shairport-sync",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libconfig.11.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libcrypto.3.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libiconv.2.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libintl.8.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libpopt.0.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libsoxr.0.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libssl.3.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libz.1.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Helpers/ffmpeg",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libavcodec.62.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libavfilter.11.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libavformat.62.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libavutil.60.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libswresample.6.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libgnutls.30.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libnettle.8.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libhogweed.6.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libgmp.10.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libp11-kit.0.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libtasn1.6.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libidn2.0.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libunistring.5.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libbrotlicommon.1.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libbrotlidec.1.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libbrotlienc.1.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libbz2.1.0.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/liblzma.5.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libffi.8.dylib",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Frameworks/libzstd.1.dylib",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\n# shairport-sync and its dylibs are already ad-hoc signed by\n# scripts/build-shairport-sync.sh at vendor time; cp preserves that\n# signature. Both re-codesigning and directory-globbing here would need\n# filesystem access the script-phase sandbox (ENABLE_USER_SCRIPT_SANDBOXING)\n# denies since only the exact declared input/output paths are permitted.\nBUNDLE=\"${BUILT_PRODUCTS_DIR}/AirPlayReceiver_AirPlayReceiver.bundle/Contents/Resources/Resources\"\nHELPERS_DIR=\"${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Contents/Helpers\"\nFRAMEWORKS_DIR=\"${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Contents/Frameworks\"\nmkdir -p \"${HELPERS_DIR}\" \"${FRAMEWORKS_DIR}\"\n\n# ControlBooth doesn't otherwise bundle sox (its user pipelines reference\n# tools by absolute path), but AirPlayReceiverController's resample stage\n# needs Contents/Helpers/sox like AntennaHead already has; vendor it from\n# the sibling AntennaHead checkout in this umbrella.\ncp -f \"${SRCROOT}/../AntennaHead/sox\" \"${HELPERS_DIR}/sox\"\nchmod +x \"${HELPERS_DIR}/sox\"\n\n# stereodemux (FM-stereo multiplex decoder) is likewise only vendored as a\n# plain binary in the AntennaHead checkout, not an SPM package product;\n# vendor it the same way as sox above, plus its own dylib dependency closure\n# (liquid-dsp for the demod math, libsndfile and the audio codecs it links,\n# none of which ControlBooth otherwise bundles).\ncp -f \"${SRCROOT}/../AntennaHead/stereodemux\" \"${HELPERS_DIR}/stereodemux\"\nchmod +x \"${HELPERS_DIR}/stereodemux\"\n\nfor name in libliquid.dylib libfec.dylib libfftw3f.3.dylib libsndfile.1.dylib libFLAC.14.dylib libvorbisenc.2.dylib libmp3lame.0.dylib libogg.0.dylib libmpg123.0.dylib libopus.0.dylib libvorbis.0.dylib; do\n  cp -f \"${SRCROOT}/../AntennaHead/${name}\" \"${FRAMEWORKS_DIR}/${name}\"\ndone\n\ncp -f \"${BUNDLE}/shairport-sync\" \"${HELPERS_DIR}/shairport-sync\"\nchmod +x \"${HELPERS_DIR}/shairport-sync\"\n\nfor name in libconfig.11.dylib libcrypto.3.dylib libiconv.2.dylib libintl.8.dylib libpopt.0.dylib libsoxr.0.dylib libssl.3.dylib libz.1.dylib; do\n  cp -f \"${BUNDLE}/Frameworks/${name}\" \"${FRAMEWORKS_DIR}/${name}\"\ndone\n\n# ffmpeg (LGPL-only custom build: --disable-gpl --disable-nonfree, with\n# X11/AppKit/CoreImage/SDL2/avfoundation stripped since VideoToolbox pulls\n# in an unconditional -lX11 on Darwin otherwise) -- decodes arbitrary\n# HTTP(S)/HLS web-radio streams into raw PCM for user-authored ControlBooth\n# pipelines to hand off to PCMUDPSender. Not an SPM package product;\n# vendored as a plain binary + its dylib closure from ControlBooth's own\n# checkout (unlike sox/stereodemux above, AntennaHead never runs these\n# pipelines itself, so there's no sibling-checkout copy to share). All\n# install names already point at @executable_path/../Frameworks/<name> and\n# are ad-hoc signed, so cp alone is correct here too. libz.1/libintl.8/\n# libiconv.2 are deliberately NOT re-vendored -- the shairport-sync block\n# above already provides SONAME-compatible copies at the same destination.\ncp -f \"${SRCROOT}/ffmpeg\" \"${HELPERS_DIR}/ffmpeg\"\nchmod +x \"${HELPERS_DIR}/ffmpeg\"\n\nfor name in libavcodec.62.dylib libavfilter.11.dylib libavformat.62.dylib libavutil.60.dylib libswresample.6.dylib libgnutls.30.dylib libnettle.8.dylib libhogweed.6.dylib libgmp.10.dylib libp11-kit.0.dylib libtasn1.6.dylib libidn2.0.dylib libunistring.5.dylib libbrotlicommon.1.dylib libbrotlidec.1.dylib libbrotlienc.1.dylib libbz2.1.0.dylib liblzma.5.dylib libffi.8.dylib libzstd.1.dylib; do\n  cp -f \"${SRCROOT}/${name}\" \"${FRAMEWORKS_DIR}/${name}\"\ndone\n";
+		};
+		497D91CC25A947DBB606EB31 /* run install_name_tool */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "run install_name_tool";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Must be positioned after Link Binary With Libraries, and before code-signing\nBIN=\"${TARGET_BUILD_DIR}/${EXECUTABLE_PATH}\"\n   install_name_tool -change \\\n       /opt/local/lib/libusb-1.0.0.dylib \\\n       @rpath/libusb-1.0.0.dylib \\\n       \"$BIN\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		0EAEB94A2FF95D2500BA711A /* Sources */ = {
@@ -811,46 +853,6 @@
 			};
 			name = Release;
 		};
-		F01B8C9F305444C380163C13 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ARCHS = arm64;
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = MMFBWVS455;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(SRCROOT)/librtlsdr.xcframework/macos-arm64",
-				);
-				GCC_WARN_INHIBIT_ALL_WARNINGS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(SRCROOT)/rtl_fm_localradio_src/include",
-					"$(SRCROOT)/rtl_fm_localradio_src",
-					"/opt/local/include/libusb-1.0",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					"-framework",
-					AudioToolbox,
-					"-framework",
-					CoreAudio,
-					"-framework",
-					CoreFoundation,
-					"/opt/local/lib/libusb-1.0.dylib",
-					"-F$(SRCROOT)/librtlsdr.xcframework/macos-arm64",
-					"-framework",
-					librtlsdr,
-					"-rpath",
-					"@executable_path/../Frameworks",
-				);
-				PRODUCT_NAME = rtl_fm_localradio;
-				SDKROOT = macosx;
-			};
-			name = Debug;
-		};
 		E91E4B61D70A4805BA63BA39 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -891,6 +893,46 @@
 				SDKROOT = macosx;
 			};
 			name = Release;
+		};
+		F01B8C9F305444C380163C13 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = MMFBWVS455;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/librtlsdr.xcframework/macos-arm64",
+				);
+				GCC_WARN_INHIBIT_ALL_WARNINGS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/rtl_fm_localradio_src/include",
+					"$(SRCROOT)/rtl_fm_localradio_src",
+					"/opt/local/include/libusb-1.0",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					AudioToolbox,
+					"-framework",
+					CoreAudio,
+					"-framework",
+					CoreFoundation,
+					"/opt/local/lib/libusb-1.0.dylib",
+					"-F$(SRCROOT)/librtlsdr.xcframework/macos-arm64",
+					"-framework",
+					librtlsdr,
+					"-rpath",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_NAME = rtl_fm_localradio;
+				SDKROOT = macosx;
+			};
+			name = Debug;
 		};
 /* End XCBuildConfiguration section */
 
@@ -969,6 +1011,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		0C450AC81DF406E297AA5C0F /* AUProcessor */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */;
+			productName = AUProcessor;
+		};
 		0EAEB9B32FF9865E00BA711A /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 0EAEB9B22FF9865E00BA711A /* XCRemoteSwiftPackageReference "GRDB" */;
@@ -989,20 +1036,20 @@
 			package = 0EAEBC012FFAD00000BA711A /* XCLocalSwiftPackageReference "../AirPlayReceiver" */;
 			productName = AirPlayReceiver;
 		};
-		A578DEEA8DE804E207930937 /* SharedLogging */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = F5FAD7DC4E894EF44C90EEB6 /* XCLocalSwiftPackageReference "../SharedLogging" */;
-			productName = SharedLogging;
-		};
-		0C450AC81DF406E297AA5C0F /* AUProcessor */ = {
+		18785847439A147EDA809002 /* LiveAudioRecorder */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */;
-			productName = AUProcessor;
+			productName = LiveAudioRecorder;
 		};
-		B43A6DCA67C7CB4EC12E5AFE /* AudioInputCapture */ = {
+		1AD803BDA4DC219FF701FB37 /* PCMJitterBuffer */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */;
-			productName = AudioInputCapture;
+			productName = PCMJitterBuffer;
+		};
+		5B1EA0345C776C5696C7EA2F /* PCMPassthrough */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */;
+			productName = PCMPassthrough;
 		};
 		84525C229CAA1ABF25B01E0C /* FMDeemphasis */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -1014,10 +1061,15 @@
 			package = F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */;
 			productName = PCMMixer;
 		};
-		5B1EA0345C776C5696C7EA2F /* PCMPassthrough */ = {
+		A578DEEA8DE804E207930937 /* SharedLogging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F5FAD7DC4E894EF44C90EEB6 /* XCLocalSwiftPackageReference "../SharedLogging" */;
+			productName = SharedLogging;
+		};
+		B43A6DCA67C7CB4EC12E5AFE /* AudioInputCapture */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */;
-			productName = PCMPassthrough;
+			productName = AudioInputCapture;
 		};
 		E87D80B587E6E414ACF764FE /* PCMSpeechSynth */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -1028,16 +1080,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */;
 			productName = PCMUDPReceiver;
-		};
-		1AD803BDA4DC219FF701FB37 /* PCMJitterBuffer */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */;
-			productName = PCMJitterBuffer;
-		};
-		18785847439A147EDA809002 /* LiveAudioRecorder */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */;
-			productName = LiveAudioRecorder;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
