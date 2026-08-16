@@ -41,31 +41,54 @@ final class Scheduler {
             guard !Task.isCancelled else { break }
 
             if let pipeline = pipelineStore.pipeline(withID: next.event.pipelineId) {
-                if next.event.isRecordingEnabled {
+                // Recording-only: skip AntennaHead entirely. The pipeline's own
+                // final stage (LiveAudioRecorder, appended by PipelineRunner)
+                // writes the AAC file directly, so starting/stopping the
+                // pipeline *is* starting/stopping the recording — no 'RecS'/
+                // 'RecP' AppleEvent round-trip needed, and no UDP output means
+                // no contention with any other running pipeline.
+                let recordingOnly = next.event.isRecordingEnabled && next.event.recordingOnly
+                if recordingOnly {
                     let filename = Self.makeRecordingFilename(eventName: next.event.name)
-                    do {
-                        try AntennaHeadClient.startRecording(filename: filename)
-                    } catch {
-                        lastError = "Recording start failed for '\(next.event.name)': \(error)"
+                    if let folderURL = SharedRecordingFolder.url {
+                        let aacPath = folderURL.appendingPathComponent(filename).path
+                        do {
+                            try runner.start(pipeline, output: .recordingOnly(aacPath: aacPath))
+                        } catch {
+                            lastError = "Pipeline start failed for '\(next.event.name)': \(error)"
+                        }
+                    } else {
+                        lastError = "Recording start failed for '\(next.event.name)': the shared Recordings folder isn't available — check the App Group entitlement."
                     }
-                }
-                do {
-                    try runner.start(pipeline)
-                } catch {
-                    lastError = "Pipeline start failed for '\(next.event.name)': \(error)"
+                } else {
+                    if next.event.isRecordingEnabled {
+                        let filename = Self.makeRecordingFilename(eventName: next.event.name)
+                        do {
+                            try AntennaHeadClient.startRecording(filename: filename)
+                        } catch {
+                            lastError = "Recording start failed for '\(next.event.name)': \(error)"
+                        }
+                    }
+                    do {
+                        try runner.start(pipeline)
+                    } catch {
+                        lastError = "Pipeline start failed for '\(next.event.name)': \(error)"
+                    }
                 }
                 let pipelineId = next.event.pipelineId
                 let duration = next.event.durationSeconds
-                let hasRecording = next.event.isRecordingEnabled
+                let stopsAntennaHeadRecording = next.event.isRecordingEnabled && !recordingOnly
                 Task { [weak self, weak runner] in
                     try? await Task.sleep(for: .seconds(TimeInterval(duration)))
-                    if hasRecording {
+                    if stopsAntennaHeadRecording {
                         do {
                             try AntennaHeadClient.stopRecording()
                         } catch {
                             self?.lastError = "Recording stop failed for '\(next.event.name)': \(error)"
                         }
                     }
+                    // For recording-only, this is what actually finalizes the
+                    // file — stopping LiveAudioRecorder closes it.
                     guard let runner, let pipeline = pipelineStore.pipeline(withID: pipelineId) else { return }
                     runner.stop(pipeline)
                 }

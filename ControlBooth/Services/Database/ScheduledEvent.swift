@@ -15,6 +15,16 @@ struct ScheduledEvent: Codable, Identifiable, Hashable, Equatable, FetchableReco
     /// here in unsandboxed ControlBooth carries no sandbox access grant it
     /// could use).
     var isRecordingEnabled: Bool
+    /// Only consulted when `isRecordingEnabled` is true. `false` (default)
+    /// is today's behavior: the pipeline's final stage streams to AntennaHead
+    /// over UDP for live playback, and AntennaHead records the stream itself
+    /// (the 'RecS'/'RecP' AppleEvents in `AntennaHeadClient`). `true` —
+    /// "recording only" — skips AntennaHead entirely: the pipeline's final
+    /// stage is PipelineHelpers' `LiveAudioRecorder`, encoding straight to a
+    /// local AAC file in the shared Recordings folder. No UDP output means no
+    /// contention for AntennaHead's UDP input port, so a recording-only event
+    /// can run concurrently alongside any number of other pipelines.
+    var recordingOnly: Bool
 
     static let databaseTableName = "scheduled_event"
 
@@ -27,6 +37,7 @@ struct ScheduledEvent: Codable, Identifiable, Hashable, Equatable, FetchableReco
         case durationSeconds     = "duration_seconds"
         case isEnabled           = "is_enabled"
         case isRecordingEnabled  = "recording_enabled"
+        case recordingOnly       = "recording_only"
     }
 
     mutating func didInsert(_ inserted: InsertionSuccess) {
@@ -42,7 +53,8 @@ struct ScheduledEvent: Codable, Identifiable, Hashable, Equatable, FetchableReco
             startTimeSeconds: 9 * 3600,
             durationSeconds: 3600,
             isEnabled: true,
-            isRecordingEnabled: false
+            isRecordingEnabled: false,
+            recordingOnly: false
         )
     }
 

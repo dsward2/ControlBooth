@@ -15,6 +15,7 @@ struct ScheduleEditorView: View {
     @State private var durationSeconds: Int
     @State private var isEnabled: Bool
     @State private var isRecordingEnabled: Bool
+    @State private var recordingOnly: Bool
     @State private var errorMessage: String?
 
     private static let dayAbbreviations = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -28,6 +29,7 @@ struct ScheduleEditorView: View {
         _durationSeconds    = State(initialValue: event.durationSeconds)
         _isEnabled          = State(initialValue: event.isEnabled)
         _isRecordingEnabled = State(initialValue: event.isRecordingEnabled)
+        _recordingOnly      = State(initialValue: event.recordingOnly)
     }
 
     var body: some View {
@@ -85,19 +87,37 @@ struct ScheduleEditorView: View {
             Section {
                 Toggle("Record this event", isOn: $isRecordingEnabled)
                 if isRecordingEnabled {
-                    HStack {
-                        Button("Test Connection") { testConnection() }
-                            .help("Sends a 'Runs' query to AntennaHead to verify the Apple Event channel works")
-                        Button("Test Recording Now") { testRecording() }
-                            .help("Immediately starts a recording in AntennaHead's configured recording folder")
-                        Button("Stop Test Recording") { testStopRecording() }
-                            .help("Stops the recording started by Test Recording Now and moves the finished file to its destination")
+                    Picker("Mode", selection: $recordingOnly) {
+                        Text("Recording with Playback").tag(false)
+                        Text("Recording Only").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+
+                    if recordingOnly {
+                        HStack {
+                            Image(systemName: "checkmark.circle")
+                                .foregroundStyle(.secondary)
+                            Text("No live playback through AntennaHead — this pipeline records straight to a local AAC file and never contends with other pipelines for AntennaHead's UDP input port, so it can run concurrently with anything else.")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    } else {
+                        HStack {
+                            Button("Test Connection") { testConnection() }
+                                .help("Sends a 'Runs' query to AntennaHead to verify the Apple Event channel works")
+                            Button("Test Recording Now") { testRecording() }
+                                .help("Immediately starts a recording in AntennaHead's configured recording folder")
+                            Button("Stop Test Recording") { testStopRecording() }
+                                .help("Stops the recording started by Test Recording Now and moves the finished file to its destination")
+                        }
                     }
                 }
             } header: {
                 Text("Recording")
             } footer: {
-                Text("Recordings are written to the folder configured in AntennaHead's own Settings (Configuration → Recording) — not picked here, since AntennaHead is sandboxed and can't be granted access to a folder chosen in this, unsandboxed, app.")
+                Text(recordingOnly
+                     ? "Recording-only files are written to the same shared Recordings folder AntennaHead uses, named from this event's name and the run's start time — no AntennaHead connection required, and no live audio playback happens."
+                     : "This pipeline streams to AntennaHead over UDP for live playback; recordings are written to the folder configured in AntennaHead's own Settings (Configuration → Recording) — not picked here, since AntennaHead is sandboxed and can't be granted access to a folder chosen in this, unsandboxed, app.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -157,7 +177,8 @@ struct ScheduleEditorView: View {
             startTimeSeconds: startTimeSeconds,
             durationSeconds: durationSeconds,
             isEnabled: isEnabled,
-            isRecordingEnabled: isRecordingEnabled
+            isRecordingEnabled: isRecordingEnabled,
+            recordingOnly: recordingOnly
         )
     }
 
@@ -169,6 +190,7 @@ struct ScheduleEditorView: View {
         || durationSeconds    != event.durationSeconds
         || isEnabled          != event.isEnabled
         || isRecordingEnabled != event.isRecordingEnabled
+        || recordingOnly      != event.recordingOnly
     }
 
     private func testConnection() {

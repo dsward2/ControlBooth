@@ -15,6 +15,7 @@ final class PipelineRunner {
         case alreadyRunning(String)
         case noStages(String)
         case senderMissing
+        case recorderMissing
         case toolMissing(String)
 
         var description: String {
@@ -27,10 +28,28 @@ final class PipelineRunner {
                 return "Pipeline '\(name)' has no stages."
             case .senderMissing:
                 return "PCMUDPSender is missing from Contents/Helpers — add it to the Copy Files build phase (see SETUP.md)."
+            case .recorderMissing:
+                return "LiveAudioRecorder is missing from Contents/Helpers — add it to the Copy Files build phase (see SETUP.md)."
             case .toolMissing(let path):
                 return "Tool not found or not executable: \(path)"
             }
         }
+    }
+
+    /// What a pipeline's automatically-appended final stage does with the PCM
+    /// stream the user-defined stages produce.
+    enum PipelineOutput {
+        /// Default: appends PCMUDPSender, streaming PCM to AntennaHead over UDP
+        /// (`pipeline.destinationHost`/`destinationPort`) for live playback —
+        /// and, if the caller separately drives AntennaHead's recorder, for
+        /// AntennaHead-side recording too. Contends with any other running
+        /// pipeline sending to the same destination (see `start(_:output:)`).
+        case udpToAntennaHead
+        /// Appends PipelineHelpers' `LiveAudioRecorder` instead, encoding the
+        /// PCM stream straight to an AAC file at `aacPath`. No UDP output at
+        /// all, so a pipeline started this way never contends for — and is
+        /// never stopped on account of — AntennaHead's UDP input port.
+        case recordingOnly(aacPath: String)
     }
 
     private(set) var managers: [Int64: TaskPipelineManager] = [:]
@@ -57,7 +76,7 @@ final class PipelineRunner {
         manager(for: pipeline)?.lastFailure
     }
 
-    func start(_ pipeline: Pipeline) throws {
+    func start(_ pipeline: Pipeline, output: PipelineOutput = .udpToAntennaHead) throws {
         guard let id = pipeline.id else {
             throw RunnerError.notSaved
         }
@@ -68,19 +87,27 @@ final class PipelineRunner {
             managers[id] = nil
         }
 
-        // Two pipelines sharing a destination would interleave into one
+        // Two pipelines sharing a UDP destination would interleave into one
         // garbled stream, so rather than reject the new pipeline, stop
         // whichever other pipeline is already sending to the same place —
         // switching pipelines should just work, not require a manual Stop
         // first. terminateAndWait blocks until it's actually gone, so the
         // hardware/port it held is free before we launch the replacement.
-        for (otherID, otherManager) in managers where otherID != id && otherManager.status == .running {
-            guard let dest = startedDestinations[otherID],
-                  dest.host == pipeline.destinationHost,
-                  dest.port == pipeline.destinationPort else { continue }
-            otherManager.terminateAndWait()
-            managers[otherID] = nil
-            startedDestinations[otherID] = nil
+        // A `.recordingOnly` pipeline sends no UDP at all, so it can never be
+        // in contention with anything — this whole check is skipped for it,
+        // both as the new pipeline (it never stops another) and, since it's
+        // never recorded into `startedDestinations` below, as the "other"
+        // pipeline a later `.udpToAntennaHead` start might otherwise compare
+        // against.
+        if case .udpToAntennaHead = output {
+            for (otherID, otherManager) in managers where otherID != id && otherManager.status == .running {
+                guard let dest = startedDestinations[otherID],
+                      dest.host == pipeline.destinationHost,
+                      dest.port == pipeline.destinationPort else { continue }
+                otherManager.terminateAndWait()
+                managers[otherID] = nil
+                startedDestinations[otherID] = nil
+            }
         }
 
         let stages = pipeline.stages
@@ -88,10 +115,20 @@ final class PipelineRunner {
             throw RunnerError.noStages(pipeline.name)
         }
 
-        let senderPath = Bundle.main.bundleURL
-            .appendingPathComponent("Contents/Helpers/PCMUDPSender").path
-        guard FileManager.default.isExecutableFile(atPath: senderPath) else {
-            throw RunnerError.senderMissing
+        let finalStagePath: String
+        switch output {
+        case .udpToAntennaHead:
+            finalStagePath = Bundle.main.bundleURL
+                .appendingPathComponent("Contents/Helpers/PCMUDPSender").path
+            guard FileManager.default.isExecutableFile(atPath: finalStagePath) else {
+                throw RunnerError.senderMissing
+            }
+        case .recordingOnly:
+            finalStagePath = Bundle.main.bundleURL
+                .appendingPathComponent("Contents/Helpers/LiveAudioRecorder").path
+            guard FileManager.default.isExecutableFile(atPath: finalStagePath) else {
+                throw RunnerError.recorderMissing
+            }
         }
 
         let manager = TaskPipelineManager()
@@ -113,20 +150,36 @@ final class PipelineRunner {
             manager.add(item)
         }
 
-        // The sender's --exit-with-parent watchdog makes it exit if this app dies
-        // (even on crash/SIGKILL); as the downstream-most reader it then collapses
-        // the whole chain upstream via SIGPIPE, so no stages are orphaned.
-        let sender = manager.makeTaskItem(pathToExecutable: senderPath, functionName: "PCMUDPSender")
-        sender.addArgument("--host")
-        sender.addArgument(pipeline.destinationHost)
-        sender.addArgument("--port")
-        sender.addArgument(pipeline.destinationPort)
-        sender.addArgument("--exit-with-parent")
-        manager.add(sender)
+        switch output {
+        case .udpToAntennaHead:
+            // The sender's --exit-with-parent watchdog makes it exit if this app
+            // dies (even on crash/SIGKILL); as the downstream-most reader it then
+            // collapses the whole chain upstream via SIGPIPE, so no stages are
+            // orphaned.
+            let sender = manager.makeTaskItem(pathToExecutable: finalStagePath, functionName: "PCMUDPSender")
+            sender.addArgument("--host")
+            sender.addArgument(pipeline.destinationHost)
+            sender.addArgument("--port")
+            sender.addArgument(pipeline.destinationPort)
+            sender.addArgument("--exit-with-parent")
+            manager.add(sender)
+        case .recordingOnly(let aacPath):
+            // No --exit-with-parent watchdog here (LiveAudioRecorder has none):
+            // it's the pipeline's own terminal reader, so when this app dies
+            // and the whole process tree is reaped, or `stop()`/`stopAll()`
+            // terminates every stage directly, it goes down the same way any
+            // other stage does.
+            let recorder = manager.makeTaskItem(pathToExecutable: finalStagePath, functionName: "LiveAudioRecorder")
+            recorder.addArgument("--aac")
+            recorder.addArgument(aacPath)
+            manager.add(recorder)
+        }
 
         try manager.start()
         managers[id] = manager
-        startedDestinations[id] = (pipeline.name, pipeline.destinationHost, pipeline.destinationPort)
+        if case .udpToAntennaHead = output {
+            startedDestinations[id] = (pipeline.name, pipeline.destinationHost, pipeline.destinationPort)
+        }
     }
 
     /// Blocks until the pipeline's processes have actually exited (see

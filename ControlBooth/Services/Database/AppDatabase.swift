@@ -102,6 +102,18 @@ final class AppDatabase {
             }
             try db.execute(sql: "UPDATE scheduled_event SET recording_enabled = 1 WHERE recording_directory IS NOT NULL")
         }
+        m.registerMigration("v8_recording_only") { db in
+            // Only meaningful when recording_enabled is set. false (default) keeps
+            // today's behavior: the pipeline's final stage is PCMUDPSender, live to
+            // AntennaHead, which records via the 'RecS'/'RecP' AppleEvents above.
+            // true: the pipeline's final stage is PipelineHelpers' LiveAudioRecorder
+            // instead, encoding straight to a local AAC file — no UDP output at all,
+            // so it never contends with another pipeline for AntennaHead's UDP input
+            // port and can run concurrently alongside any number of others.
+            try db.alter(table: "scheduled_event") { t in
+                t.add(column: "recording_only", .boolean).notNull().defaults(to: false)
+            }
+        }
         return m
     }
 
