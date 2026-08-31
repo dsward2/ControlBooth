@@ -58,7 +58,13 @@ struct PipelineEditorView: View {
                     .help("Replace all stages with pasted CLI text")
                 }
             } header: {
-                Text("Stages")
+                HStack {
+                    Text("Stages")
+                    Spacer()
+                    PipelineToolsDocLink()
+                        .buttonStyle(.borderless)
+                        .font(.callout)
+                }
             } footer: {
                 Text("Audio flows stage → stage via stdin/stdout. `PCMUDPSender --host \(destinationHost) --port \(String(destinationPort)) --exit-with-parent` is appended automatically as the final stage.")
                     .font(.caption)

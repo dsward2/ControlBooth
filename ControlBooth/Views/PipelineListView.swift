@@ -26,6 +26,9 @@ struct PipelineListView: View {
                 }
                 .help("Add a new pipeline")
             }
+            ToolbarItem {
+                PipelineToolsDocLink()
+            }
         }
         .alert("Pipeline Error", isPresented: errorPresented) {
             Button("OK", role: .cancel) {}
