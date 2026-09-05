@@ -9,7 +9,7 @@ struct PipelineListView: View {
     var body: some View {
         List(selection: $selectedID) {
             ForEach(store.pipelines) { pipeline in
-                PipelineRowView(pipeline: pipeline, errorMessage: $errorMessage)
+                PipelineRowView(pipeline: pipeline, selectedID: $selectedID, errorMessage: $errorMessage)
                     .tag(pipeline.id ?? -1)
             }
             .onMove { from, to in
@@ -58,6 +58,7 @@ struct PipelineRowView: View {
     @Environment(PipelineStore.self) private var store
     @Environment(PipelineRunner.self) private var runner
     let pipeline: Pipeline
+    @Binding var selectedID: Int64?
     @Binding var errorMessage: String?
 
     var body: some View {
@@ -79,6 +80,9 @@ struct PipelineRowView: View {
             .help(runner.isRunning(pipeline) ? "Stop pipeline" : "Start pipeline")
         }
         .contextMenu {
+            Button("Duplicate") {
+                duplicatePipeline()
+            }
             Button("Delete", role: .destructive) {
                 deletePipeline()
             }
@@ -111,6 +115,15 @@ struct PipelineRowView: View {
         runner.stop(pipeline)
         do {
             try store.delete(pipeline)
+        } catch {
+            errorMessage = "\(error)"
+        }
+    }
+
+    private func duplicatePipeline() {
+        do {
+            let copy = try store.duplicate(pipeline)
+            selectedID = copy.id
         } catch {
             errorMessage = "\(error)"
         }

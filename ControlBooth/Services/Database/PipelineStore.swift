@@ -71,4 +71,28 @@ final class PipelineStore {
         }
         load()
     }
+
+    /// Copies `pipeline` into a new row placed immediately after the original,
+    /// shifting later pipelines down.
+    @discardableResult
+    func duplicate(_ pipeline: Pipeline) throws -> Pipeline {
+        var newPipeline = pipeline
+        newPipeline.id = nil
+        newPipeline.name = "\(pipeline.name) copy"
+        newPipeline.sortOrder = pipeline.sortOrder
+
+        let saved = try dbQueue.write { db -> Pipeline in
+            try newPipeline.insert(db)
+            // The copy shares sort_order with the original; breaking ties by
+            // id (the copy is always the higher id) places it right after.
+            let ordered = try Pipeline.order(Column("sort_order"), Column("id")).fetchAll(db)
+            for (index, var record) in ordered.enumerated() {
+                record.sortOrder = index
+                try record.update(db)
+            }
+            return try Pipeline.fetchOne(db, key: newPipeline.id)!
+        }
+        load()
+        return saved
+    }
 }
