@@ -122,6 +122,13 @@ struct ScheduleEditorView: View {
                     .foregroundStyle(.secondary)
             }
 
+            if let id = event.id, let filename = scheduler.recordingFilenames[id] {
+                Section {
+                    Label("This event has started and is actively recording audio to \"\(filename)\".", systemImage: "record.circle.fill")
+                        .foregroundStyle(.red)
+                }
+            }
+
             if let err = scheduler.lastError {
                 Section("Last Error") {
                     Text(err)

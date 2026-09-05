@@ -6,6 +6,15 @@ import Observation
 final class Scheduler {
     private(set) var nextFireDate: Date?
     private(set) var lastError: String?
+    /// Output filename of each scheduled event currently in its fired window
+    /// with recording actually underway, keyed by event id — covers both
+    /// recording-only (LiveAudioRecorder is the pipeline's own terminal
+    /// stage) and record-with-playback (a separate AntennaHead 'RecS'
+    /// AppleEvent) modes. An entry is only added once its recording
+    /// mechanism has actually started successfully, and is always removed
+    /// by the same per-fire Task that stops it, so this stays accurate even
+    /// across `reschedule()`/delete of the event.
+    private(set) var recordingFilenames: [Int64: String] = [:]
     private var schedulerTask: Task<Void, Never>?
 
     /// Cancels any running schedule loop and starts a fresh one.
@@ -48,12 +57,14 @@ final class Scheduler {
                 // 'RecP' AppleEvent round-trip needed, and no UDP output means
                 // no contention with any other running pipeline.
                 let recordingOnly = next.event.isRecordingEnabled && next.event.recordingOnly
+                var recordingFilename: String?
                 if recordingOnly {
                     let filename = Self.makeRecordingFilename(eventName: next.event.name)
                     if let folderURL = SharedRecordingFolder.url {
                         let aacPath = folderURL.appendingPathComponent(filename).path
                         do {
                             try runner.start(pipeline, output: .recordingOnly(aacPath: aacPath))
+                            recordingFilename = filename
                         } catch {
                             lastError = "Pipeline start failed for '\(next.event.name)': \(error)"
                         }
@@ -65,6 +76,7 @@ final class Scheduler {
                         let filename = Self.makeRecordingFilename(eventName: next.event.name)
                         do {
                             try AntennaHeadClient.startRecording(filename: filename)
+                            recordingFilename = filename
                         } catch {
                             lastError = "Recording start failed for '\(next.event.name)': \(error)"
                         }
@@ -74,6 +86,9 @@ final class Scheduler {
                     } catch {
                         lastError = "Pipeline start failed for '\(next.event.name)': \(error)"
                     }
+                }
+                if let filename = recordingFilename, let id = next.event.id {
+                    recordingFilenames[id] = filename
                 }
                 let pipelineId = next.event.pipelineId
                 let duration = next.event.durationSeconds
@@ -85,6 +100,11 @@ final class Scheduler {
                             try AntennaHeadClient.stopRecording()
                         } catch {
                             self?.lastError = "Recording stop failed for '\(next.event.name)': \(error)"
+                        }
+                    }
+                    defer {
+                        if let id = next.event.id {
+                            self?.recordingFilenames.removeValue(forKey: id)
                         }
                     }
                     // For recording-only, this is what actually finalizes the
