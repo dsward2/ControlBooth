@@ -121,5 +121,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // --exit-with-parent watchdogs collapse the pipelines instead.
         runner?.stopAll()
         airPlayReceiverService?.stopAll()
+        // Best-effort — a crash skips this the same way it skips the
+        // teardown above; AntennaHead's own NSRunningApplication check
+        // catches that case eventually, just without the instant nudge.
+        AntennaHeadClient.notifyQuitting()
     }
 }

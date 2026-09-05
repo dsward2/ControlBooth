@@ -21,6 +21,11 @@ import SharedLogging
 ///                             ear even with no station tuned. Scheduled/live
 ///                             recordings omit it and get silence filler.
 ///   'RecP'  stop recording    no parameters
+///   'CBQt'  notify quitting   no parameters, no reply — sent from
+///                             `applicationWillTerminate` so AntennaHead can
+///                             show ControlBooth as not running (e.g. on its
+///                             ControlBooth Remote Control web page) without
+///                             waiting on `NSRunningApplication` to notice.
 ///
 /// Sending waits synchronously for the reply (with a timeout), so call from
 /// user-action contexts, not tight loops. The first send triggers macOS's
@@ -71,6 +76,15 @@ enum AntennaHeadClient {
         _ = try send(eventID: "RecP", directParameter: nil)
     }
 
+    /// Tells AntennaHead ControlBooth is about to quit. Best-effort and
+    /// non-blocking — call from `applicationWillTerminate`, where waiting on
+    /// a reply (or even AntennaHead's `notRunning` check raising) must never
+    /// hold up termination. Silently does nothing if AntennaHead isn't
+    /// running or the send fails for any other reason.
+    static func notifyQuitting() {
+        _ = try? send(eventID: "CBQt", directParameter: nil, waitForReply: false)
+    }
+
     static func listeningTasks() throws -> [String] {
         let reply = try send(eventID: "Runs", directParameter: nil)
         guard let list = reply.paramDescriptor(forKeyword: keyDirectObject),
@@ -82,7 +96,8 @@ enum AntennaHeadClient {
     }
 
     private static func send(eventID: String, directParameter: NSAppleEventDescriptor?,
-                              extraParams: [FourCharCode: NSAppleEventDescriptor] = [:]) throws -> NSAppleEventDescriptor {
+                              extraParams: [FourCharCode: NSAppleEventDescriptor] = [:],
+                              waitForReply: Bool = true) throws -> NSAppleEventDescriptor {
         // Use PID-based targeting so the event goes to exactly the running instance
         // we find, not an ambiguous bundle-ID lookup (which can hit a stale process).
         guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).first else {
@@ -103,7 +118,12 @@ enum AntennaHeadClient {
         for (keyword, descriptor) in extraParams {
             event.setParam(descriptor, forKeyword: keyword)
         }
-        let reply = try event.sendEvent(options: [.waitForReply], timeout: 8)
+        // .noReply both skips waiting on AntennaHead and lets the send itself
+        // return immediately — needed for notifyQuitting(), which must not
+        // block applicationWillTerminate.
+        let reply = try event.sendEvent(options: waitForReply ? [.waitForReply] : [.noReply],
+                                         timeout: waitForReply ? 8 : 0)
+        guard waitForReply else { return reply }
         if let errorNumber = reply.paramDescriptor(forKeyword: keyErrorNumber)?.int32Value,
            errorNumber != 0 {
             throw ClientError.eventError(
