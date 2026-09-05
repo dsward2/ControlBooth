@@ -9,6 +9,10 @@
 /* Begin PBXBuildFile section */
 		04682A61C5430A617C6A4387 /* PCMSpeechSynth in Frameworks */ = {isa = PBXBuildFile; productRef = E87D80B587E6E414ACF764FE /* PCMSpeechSynth */; };
 		0DB533FFB7D9D2B75A6AB91F /* PCMJitterBuffer in CopyFiles */ = {isa = PBXBuildFile; productRef = 1AD803BDA4DC219FF701FB37 /* PCMJitterBuffer */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		D1AF7E60000000000000000A /* PCMDistanceGain in Frameworks */ = {isa = PBXBuildFile; productRef = D1AF7E60000000000000000B /* PCMDistanceGain */; };
+		D1AF7E60000000000000000C /* PCMDistanceGain in CopyFiles */ = {isa = PBXBuildFile; productRef = D1AF7E60000000000000000B /* PCMDistanceGain */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		D1AF7E61000000000000000A /* PCMBinauralPanner in Frameworks */ = {isa = PBXBuildFile; productRef = D1AF7E61000000000000000B /* PCMBinauralPanner */; };
+		D1AF7E61000000000000000C /* PCMBinauralPanner in CopyFiles */ = {isa = PBXBuildFile; productRef = D1AF7E61000000000000000B /* PCMBinauralPanner */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		0E2AEE3330106E75007F4143 /* PCMUDPSender in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEBB012FFAC00000BA711A /* PCMUDPSender */; };
 		0EAEB9B42FF9865E00BA711A /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEB9B32FF9865E00BA711A /* GRDB */; };
 		0EAEB9E12FFAA29A00BA711A /* PipelineRunner in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEB9E02FFAA29A00BA711A /* PipelineRunner */; };
@@ -81,6 +85,8 @@
 				0DB533FFB7D9D2B75A6AB91F /* PCMJitterBuffer in CopyFiles */,
 				F3CA606A9E82643AF40DB604 /* LiveAudioRecorder in CopyFiles */,
 				DB5A20EE6CFE4048B722772C /* rtl_fm_localradio in CopyFiles */,
+				D1AF7E60000000000000000C /* PCMDistanceGain in CopyFiles */,
+				D1AF7E61000000000000000C /* PCMBinauralPanner in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -147,6 +153,8 @@
 				ABB3E799D7AF49A5C89A4D1D /* PCMUDPReceiver in Frameworks */,
 				87C3FE52371D7713823E1083 /* PCMJitterBuffer in Frameworks */,
 				682B2C68708AF6B3ABA5A039 /* LiveAudioRecorder in Frameworks */,
+				D1AF7E60000000000000000A /* PCMDistanceGain in Frameworks */,
+				D1AF7E61000000000000000A /* PCMBinauralPanner in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -262,6 +270,8 @@
 				E99738898D9599DAC90193CC /* PCMUDPReceiver */,
 				1AD803BDA4DC219FF701FB37 /* PCMJitterBuffer */,
 				18785847439A147EDA809002 /* LiveAudioRecorder */,
+				D1AF7E60000000000000000B /* PCMDistanceGain */,
+				D1AF7E61000000000000000B /* PCMBinauralPanner */,
 			);
 			productName = ControlBooth;
 			productReference = 0EAEB94E2FF95D2500BA711A /* ControlBooth.app */;
@@ -1080,6 +1090,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */;
 			productName = PCMUDPReceiver;
+		};
+		D1AF7E60000000000000000B /* PCMDistanceGain */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */;
+			productName = PCMDistanceGain;
+		};
+		D1AF7E61000000000000000B /* PCMBinauralPanner */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */;
+			productName = PCMBinauralPanner;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

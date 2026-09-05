@@ -80,3 +80,26 @@ struct PipelineStage: Identifiable, Hashable {
         return json
     }
 }
+
+extension Array where Element == PipelineStage {
+    /// Finds a stage whose executable matches `toolName` (by last path
+    /// component, the same identity `PipelineRunner` uses for a stage's
+    /// `functionName`) and returns the `UInt16` value of its
+    /// `--control-port` argument, if present.
+    ///
+    /// Unlike AntennaHead's fixed, internally-owned control ports, a
+    /// ControlBooth pipeline's spatial-audio stage is just whatever the
+    /// pipeline author typed into that stage's arguments in the editor —
+    /// there's no app-owned constant to read. This discovers it from the
+    /// pipeline's own configuration instead of assuming one.
+    func controlPort(forTool toolName: String) -> UInt16? {
+        for stage in self {
+            guard (stage.path as NSString).lastPathComponent == toolName else { continue }
+            guard let index = stage.arguments.firstIndex(of: "--control-port"),
+                  index + 1 < stage.arguments.count,
+                  let port = UInt16(stage.arguments[index + 1]) else { continue }
+            return port
+        }
+        return nil
+    }
+}
