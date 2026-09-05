@@ -65,9 +65,15 @@ struct PipelineStatusView: View {
                         SpatialControlSender.sendPosition(azimuth: azimuth, elevation: newValue, toPort: binauralPort)
                     }
                 }
-                if let distancePort {
+                if distancePort != nil || binauralPort != nil {
+                    // Distance now matters to both stages for their own
+                    // distinct purposes — PCMDistanceGain for loudness
+                    // falloff, PCMBinauralPanner for air absorption (moved
+                    // there from PCMDistanceGain) — so a change goes to
+                    // whichever of the two are actually present.
                     spatialRow("Distance", value: $distance, range: 0.1...4.0, format: "%.2f") { newValue in
-                        SpatialControlSender.sendDistance(newValue, toPort: distancePort)
+                        if let distancePort { SpatialControlSender.sendDistance(newValue, toPort: distancePort) }
+                        if let binauralPort { SpatialControlSender.sendDistance(newValue, toPort: binauralPort) }
                     }
                 }
             }
