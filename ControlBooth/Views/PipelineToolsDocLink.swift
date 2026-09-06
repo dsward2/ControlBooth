@@ -5,8 +5,14 @@ import SwiftUI
 /// user's default browser — ControlBooth's equivalent of the "Pipeline Tools
 /// documentation" link AntennaHead shows on its Custom Task pages.
 enum PipelineToolsDoc {
+    /// The bundled reference file, if present. Exposed so `PipelineToolsDocTests`
+    /// can check it against `PipelineHelperCatalog` / `KnownExternalTools`.
+    static var bundledURL: URL? {
+        Bundle.main.url(forResource: "pipelinetools", withExtension: "html")
+    }
+
     static func open() {
-        guard let url = Bundle.main.url(forResource: "pipelinetools", withExtension: "html") else {
+        guard let url = bundledURL else {
             NSSound.beep()
             return
         }
