@@ -10,7 +10,10 @@ import PipelineRunner
 /// `StageEditorView` uses it for the header issue count, and `ControlBoothTests`
 /// exercises it directly. The stored model and the cross-app
 /// `{"tasks":[…]}` JSON are unchanged; this is only a lens over `[String]`.
-struct HelperArguments {
+///
+/// `nonisolated` so the module's default main-actor isolation doesn't make its
+/// `Issue: Equatable` conformance unusable from the (nonisolated) test suite.
+nonisolated struct HelperArguments {
     let spec: PipelineHelperSpec
     var tokens: [String]
 

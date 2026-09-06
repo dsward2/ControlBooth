@@ -89,9 +89,10 @@ for you.</p>
   <li><strong>Use straight dashes:</strong> options start with two hyphens
       (<code>--repeat</code>). If a tool reports an unknown argument that looks right,
       check for a smart em&nbsp;dash (—) from autocorrect in an older record.</li>
-  <li><strong><code>--exit-with-parent</code>:</strong> all bundled helpers accept this
-      flag; it makes the helper exit if the app dies unexpectedly, so pipelines never
-      orphan. Recommended on the <em>first</em> stage.</li>
+  <li><strong><code>--exit-with-parent</code>:</strong> most bundled helpers accept this
+      flag (the exceptions are <code>FMDeemphasis</code>, <code>PCMJitterBuffer</code> and
+      <code>LiveAudioRecorder</code>); it makes the helper exit if the app dies
+      unexpectedly, so pipelines never orphan. Recommended on the <em>first</em> stage.</li>
 </ul>
 
 <h2>Bundled helpers</h2>
@@ -110,6 +111,7 @@ paced in real time.</p>
   <tr><td><code>--speech-rate &lt;0..1&gt;</code></td><td>Speaking speed. Default: system default.</td></tr>
   <tr><td><code>--ssml</code></td><td>Parse the text as SSML markup for prosody control, e.g. <code>&lt;speak&gt;hello &lt;break time="500ms"/&gt; &lt;prosody pitch="+40%"&gt;there&lt;/prosody&gt;&lt;/speak&gt;</code>.</td></tr>
   <tr><td><code>--repeat</code></td><td>Loop the audio continuously.</td></tr>
+  <tr><td><code>--no-pace</code></td><td>Emit the rendered audio as fast as the sink accepts instead of metering it in real time — for rendering a fixed clip to a file, not driving a live pipeline. Ignored for the udp source.</td></tr>
   <tr><td><code>--gap &lt;seconds&gt;</code></td><td>Silence between repeats. Default 1.0.</td></tr>
   <tr><td><code>--list-voices</code></td><td>Print available voices and exit.</td></tr>
   <tr><td><code>--exit-with-parent</code></td><td>Exit if the app dies.</td></tr>
@@ -227,6 +229,115 @@ or adjust live over the control port.</p>
 <h3>PCMPassthrough — no-op stage</h3>
 <p>Copies stdin to stdout unchanged; takes no options. Useful as a placeholder, and its
 source is the template for writing new DSP stages.</p>
+
+<h3>PCMPrefix — play a clip, then pass stdin through</h3>
+<p>Plays a pre-rendered raw clip first, then forwards stdin unchanged — the spoken station
+announcement before live playback. A missing or empty <code>--prefix-file</code> makes it a
+plain passthrough.</p>
+<table>
+  <tr><th>Option</th><th>Description</th></tr>
+  <tr><td><code>--prefix-file &lt;path&gt;</code></td><td>Raw S16LE clip to play first, at <code>--rate</code>. Must already be at <code>--rate</code> — no resampling is done.</td></tr>
+  <tr><td><code>--during-prefix drop|hold</code></td><td>What to do with stdin while the clip plays: <code>drop</code> it, or <code>hold</code> (buffer) it. Default <code>drop</code>.</td></tr>
+  <tr><td><code>--prefix-channels 1|2</code></td><td>Channel count of <code>--prefix-file</code>. Default 2; <code>1</code> is up-mixed to <code>--channels</code> by sample duplication.</td></tr>
+  <tr><td><code>--rate &lt;hz&gt;</code> / <code>--channels &lt;n&gt;</code></td><td>Stream format for pacing math. Default 48000 / 2.</td></tr>
+  <tr><td><code>--exit-with-parent</code></td><td>Exit if the app dies.</td></tr>
+</table>
+
+<h3>FMDeemphasis — FM de-emphasis filter</h3>
+<p>First-order IIR de-emphasis (RC-network model) in floating point, stdin&nbsp;→&nbsp;stdout,
+format unchanged. Best run at 48&nbsp;kHz after a sox resample, which keeps it clear of the
+FM pilot tone and stereo subcarrier. Does <em>not</em> accept <code>--exit-with-parent</code>.</p>
+<table>
+  <tr><th>Option</th><th>Description</th></tr>
+  <tr><td><code>--rate &lt;hz&gt;</code></td><td>Sample rate in Hz. Default 48000.</td></tr>
+  <tr><td><code>--channels &lt;n&gt;</code></td><td>1 or 2. Default 2.</td></tr>
+  <tr><td><code>--tau &lt;µs&gt;</code></td><td>De-emphasis time constant in microseconds. Default 75.0 (U.S.); use 50.0 for the European/ITU standard.</td></tr>
+</table>
+
+<h3>PCMJitterBuffer — steady-pace a bursty source</h3>
+<p>Absorbs bursty upstream delivery (e.g. <code>nrsc5</code> handing off decoded audio in
+~186&nbsp;ms HD&nbsp;Radio logical-frame blocks) and re-emits the same bytes at a steady
+real-time pace. Trades a fixed <code>--buffer-ms</code> of latency for that smoothing; no
+silence is injected on a genuine stall. Place it between the bursty source and the terminal
+<code>PCMUDPSender</code>. Does <em>not</em> accept <code>--exit-with-parent</code>.</p>
+<table>
+  <tr><th>Option</th><th>Description</th></tr>
+  <tr><td><code>--rate &lt;hz&gt;</code></td><td>Sample rate in Hz. Required. (<code>-r</code> also accepted.)</td></tr>
+  <tr><td><code>--channels &lt;n&gt;</code></td><td>Channel count. Default 2. (<code>-c</code> also accepted.)</td></tr>
+  <tr><td><code>--buffer-ms &lt;ms&gt;</code></td><td>Buffer depth in milliseconds — the latency traded for absorbing bursts. Default 400.</td></tr>
+</table>
+
+<h3>LiveAudioRecorder — tee to an MP3/AAC file</h3>
+<p>A stdin&nbsp;→&nbsp;stdout passthrough (byte-identical) that also encodes the PCM to a
+file. Can sit anywhere in a chain, or run standalone — several instances at once, one per
+source. At least one of <code>--mp3</code> / <code>--aac</code> is required; with neither, it
+just passes through. Does <em>not</em> accept <code>--exit-with-parent</code>.</p>
+<table>
+  <tr><th>Option</th><th>Description</th></tr>
+  <tr><td><code>--mp3 &lt;path&gt;</code></td><td>Write an MP3 file at this path.</td></tr>
+  <tr><td><code>--aac &lt;path&gt;</code></td><td>Write an AAC (<code>.m4a</code>) file at this path.</td></tr>
+  <tr><td><code>--rate &lt;hz&gt;</code> / <code>--channels &lt;n&gt;</code></td><td>Input stream format. Default 48000 / 2.</td></tr>
+  <tr><td><code>--mp3-bitrate &lt;kbps&gt;</code></td><td>MP3 bitrate in kbps. Default 128.</td></tr>
+  <tr><td><code>--aac-bitrate &lt;bps&gt;</code></td><td>AAC bitrate in <em>bits</em> per second. Default 128000.</td></tr>
+  <tr><td><code>--verbose</code></td><td>Log per-chunk encoder progress to stderr.</td></tr>
+</table>
+
+<h3>PCMTranscriber — tee to on-device speech recognition</h3>
+<p>A stdin&nbsp;→&nbsp;stdout passthrough that also feeds the PCM to Apple's on-device
+<code>SpeechAnalyzer</code> (macOS&nbsp;26+; a no-op on older systems). Emits result JSON over
+UDP and/or appends finalized segments to a transcript file. Needs <code>--udp-port</code>
+and/or <code>--transcript-file</code>, else there's nothing to do.</p>
+<table>
+  <tr><th>Option</th><th>Description</th></tr>
+  <tr><td><code>--rate &lt;hz&gt;</code></td><td>Input sample rate, 8000–192000. Default 48000.</td></tr>
+  <tr><td><code>--channels &lt;n&gt;</code></td><td>1 or 2. Default 2.</td></tr>
+  <tr><td><code>--locale &lt;bcp47&gt;</code></td><td>Recognition locale as a BCP-47 tag. Default <code>en-US</code>.</td></tr>
+  <tr><td><code>--udp-port &lt;n&gt;</code></td><td>Send newline-delimited JSON transcription events to this port.</td></tr>
+  <tr><td><code>--udp-host &lt;addr&gt;</code></td><td>Destination for the JSON events. Default 127.0.0.1.</td></tr>
+  <tr><td><code>--transcript-file &lt;path&gt;</code></td><td>Append finalized segments here (plain text / SRT / VTT by extension).</td></tr>
+  <tr><td><code>--partials</code></td><td>Also emit volatile (not-yet-final) hypotheses over UDP.</td></tr>
+  <tr><td><code>--exit-with-parent</code></td><td>Exit if the app dies.</td></tr>
+</table>
+
+<h3>PCMDistanceGain — distance-based loudness falloff</h3>
+<p>Spatial-audio prep: attenuates the stream by distance, live-adjustable over a UDP control
+port. Pairs with <code>PCMBinauralPanner</code> downstream (both take the same
+<code>distance</code>; a host sends it to both control ports on a change).</p>
+<table>
+  <tr><th>Option</th><th>Description</th></tr>
+  <tr><td><code>--rate &lt;hz&gt;</code> / <code>--channels &lt;n&gt;</code></td><td>Stream format. Default 48000 / 2.</td></tr>
+  <tr><td><code>--distance &lt;d&gt;</code></td><td>Initial distance in pad units (≥ 0). Default 1.0.</td></tr>
+  <tr><td><code>--reference-distance &lt;d&gt;</code></td><td>Distance at/inside which gain is unity (&gt; 0). Default 1.0.</td></tr>
+  <tr><td><code>--rolloff &lt;r&gt;</code></td><td>Falloff exponent. 1.0 = physical inverse-distance; lower is gentler. Default 0.8.</td></tr>
+  <tr><td><code>--min-gain &lt;0..1&gt;</code></td><td>Gain floor, so a far source fades but never vanishes. Default 0.05.</td></tr>
+  <tr><td><code>--control-port &lt;n&gt;</code></td><td>UDP port for live <code>distance</code> updates.</td></tr>
+  <tr><td><code>--exit-with-parent</code></td><td>Exit if the app dies.</td></tr>
+</table>
+<p>Control commands (one line per UDP datagram): <code>distance &lt;d&gt;</code>.</p>
+
+<h3>PCMBinauralPanner — azimuth/elevation binaural panning</h3>
+<p>Direction stage: ITD/ILD-based azimuth/elevation panning (not measured HRTF) plus
+distance-driven air absorption, downmixing to mono and emitting true 2-channel binaural
+output. Sits downstream of <code>PCMDistanceGain</code>; live-adjustable over its own UDP
+control port.</p>
+<table>
+  <tr><th>Option</th><th>Description</th></tr>
+  <tr><td><code>--rate &lt;hz&gt;</code> / <code>--channels &lt;n&gt;</code></td><td>Stream format. Default 48000 / 2 (input is downmixed to mono).</td></tr>
+  <tr><td><code>--azimuth &lt;deg&gt;</code></td><td>Initial azimuth (0 = front, positive = right). Default 0.</td></tr>
+  <tr><td><code>--elevation &lt;deg&gt;</code></td><td>Initial elevation, −90…90. Default 0.</td></tr>
+  <tr><td><code>--head-radius &lt;m&gt;</code></td><td>Head radius in metres, for the ITD model. Default 0.0875.</td></tr>
+  <tr><td><code>--ild-depth &lt;0..1&gt;</code></td><td>Far-ear level reduction at full pan. Default 0.6.</td></tr>
+  <tr><td><code>--shadow-min-cutoff &lt;hz&gt;</code></td><td>Head-shadow lowpass cutoff at full pan. Default 1500.</td></tr>
+  <tr><td><code>--shadow-max-cutoff &lt;hz&gt;</code></td><td>Head-shadow lowpass cutoff at azimuth 0 (no shadow). Default 18000.</td></tr>
+  <tr><td><code>--elevation-shelf-db &lt;dB&gt;</code></td><td>Max high-shelf tilt at ±90° elevation. Default 4.0.</td></tr>
+  <tr><td><code>--distance &lt;d&gt;</code></td><td>Initial distance in pad units, for air absorption (≥ 0). Default 1.0.</td></tr>
+  <tr><td><code>--reference-distance &lt;d&gt;</code></td><td>Distance at/inside which there's no air absorption. Match <code>PCMDistanceGain</code>'s value. Default 1.0.</td></tr>
+  <tr><td><code>--air-absorption-min-cutoff &lt;hz&gt;</code></td><td>Lowpass cutoff at <code>--air-absorption-distance</code>. Default 1200.</td></tr>
+  <tr><td><code>--air-absorption-max-cutoff &lt;hz&gt;</code></td><td>Lowpass cutoff at/inside the reference distance. Default 20000.</td></tr>
+  <tr><td><code>--air-absorption-distance &lt;d&gt;</code></td><td>Distance at which the cutoff reaches its minimum. Must be greater than <code>--reference-distance</code>. Default 8.0.</td></tr>
+  <tr><td><code>--control-port &lt;n&gt;</code></td><td>UDP port for live <code>azimuth</code> / <code>elevation</code> / <code>distance</code> updates.</td></tr>
+  <tr><td><code>--exit-with-parent</code></td><td>Exit if the app dies.</td></tr>
+</table>
 
 <h2>Bundled third-party tools</h2>
 

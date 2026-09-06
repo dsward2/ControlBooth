@@ -112,6 +112,17 @@ struct StageEditorView: View {
                     }
                     .padding(.leading, 16)
                 } else {
+                    if let externalTool = KnownExternalTools.match(stage.path) {
+                        Label {
+                            Text(externalTool.summary)
+                        } icon: {
+                            Image(systemName: "info.circle")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.leading, 16)
+                    }
                     rawArgumentEditor
                 }
             }
@@ -158,6 +169,7 @@ struct StageEditorView: View {
 
     private var headline: String? {
         if let spec { return spec.name }
+        if let tool = KnownExternalTools.match(stage.path) { return tool.name }
         guard stage.path.contains("/") else { return nil }
         return URL(fileURLWithPath: stage.path).lastPathComponent
     }
