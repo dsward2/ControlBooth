@@ -1,15 +1,29 @@
 import Foundation
 
-/// Tools ControlBooth doesn't bundle but that `pipelinetools.html` documents.
-/// Used only to show a one-line hint in the generic (non-catalogued) stage
-/// editor — anything with a `PipelineHelperCatalog` spec gets the structured
-/// editor instead, and truly unknown tools get nothing.
+/// External tools ControlBooth pipelines commonly reach for — some vendored in
+/// `Contents/Helpers` (sox, stereodemux, rtl_fm_localradio, ffmpeg), some
+/// system or user-installed (nc, nrsc5). None has a `PipelineHelperCatalog`
+/// spec, so the stage editor gives them the plain `Argument N` rows plus the
+/// one-line `summary` as a hint. Also drives the "External tools" section of
+/// the tool-picker menus in `StageEditorView` / `PipelineEditorView`.
 nonisolated struct KnownExternalTool: Equatable {
     let name: String
     let summary: String
     /// Whether `pipelinetools.html` carries a dedicated `<h3>` section for it
     /// (asserted by `PipelineToolsDocTests`).
     let hasDocSection: Bool
+    /// What the tool-picker menus put in a stage's `path` when this tool is
+    /// chosen. A bare name for the tools ControlBooth vendors in
+    /// `Contents/Helpers` (resolved there by `PipelineRunner.resolveToolPath`);
+    /// an absolute path for a system tool that lives elsewhere.
+    let insertionPath: String
+
+    init(name: String, summary: String, hasDocSection: Bool, insertionPath: String? = nil) {
+        self.name = name
+        self.summary = summary
+        self.hasDocSection = hasDocSection
+        self.insertionPath = insertionPath ?? name
+    }
 }
 
 nonisolated enum KnownExternalTools {
@@ -33,10 +47,17 @@ nonisolated enum KnownExternalTools {
             hasDocSection: true
         ),
         KnownExternalTool(
+            name: "ffmpeg",
+            summary: "Vendored LGPL ffmpeg. Decodes an HTTP(S)/HLS web-radio URL to raw PCM — "
+                + "give it \"-i <url> -f s16le -ar 48000 -ac 2 -\" and follow with PCMUDPSender.",
+            hasDocSection: false
+        ),
+        KnownExternalTool(
             name: "nc",
             summary: "System netcat (/usr/bin/nc). Simple TCP/UDP plumbing — but for UDP audio "
                 + "sources PCMUDPReceiver is usually the better choice.",
-            hasDocSection: true
+            hasDocSection: true,
+            insertionPath: "/usr/bin/nc"
         ),
         KnownExternalTool(
             name: "nrsc5",
