@@ -38,11 +38,27 @@ struct PipelineEditorView: View {
                     )
                 }
                 HStack {
-                    Button {
-                        stages.append(PipelineStage())
+                    Menu {
+                        ForEach(PipelineHelperSpec.Category.allCases, id: \.self) { category in
+                            let specs = PipelineHelperCatalog.specs(in: category)
+                            if !specs.isEmpty {
+                                Section(category.displayName) {
+                                    ForEach(specs) { helper in
+                                        Button(helper.name) {
+                                            stages.append(PipelineStage(path: helper.name))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        Divider()
+                        Button("External tool…") { stages.append(PipelineStage()) }
                     } label: {
                         Label("Add Stage", systemImage: "plus")
+                    } primaryAction: {
+                        stages.append(PipelineStage())
                     }
+                    .help("Add a built-in helper stage, or an empty stage for an external tool")
                     Button {
                         copyPipeline()
                     } label: {

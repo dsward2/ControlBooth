@@ -16,9 +16,20 @@ struct StageEditorView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         if let headline {
-                            Text(headline)
-                                .font(.headline)
-                                .lineLimit(1)
+                            HStack(spacing: 6) {
+                                Text(headline)
+                                    .font(.headline)
+                                    .lineLimit(1)
+                                if let issueSummary {
+                                    Label(
+                                        issueSummary.count == 1 ? "1 issue" : "\(issueSummary.count) issues",
+                                        systemImage: "exclamationmark.triangle.fill"
+                                    )
+                                    .font(.caption)
+                                    .foregroundStyle(.orange)
+                                    .help(issueSummary.text)
+                                }
+                            }
                         }
                         TextField("Tool path (absolute, or bare name for Contents/Helpers)", text: $stage.path)
                             .font(.body.monospaced())
@@ -149,6 +160,18 @@ struct StageEditorView: View {
         if let spec { return spec.name }
         guard stage.path.contains("/") else { return nil }
         return URL(fileURLWithPath: stage.path).lastPathComponent
+    }
+
+    /// Count + tooltip text of the structured stage's current validation
+    /// problems, or `nil` for an external tool or a clean stage. Shown next to
+    /// the headline so issues are visible even with the argument rows scrolled
+    /// out of view.
+    private var issueSummary: (count: Int, text: String)? {
+        guard let spec else { return nil }
+        let issues = HelperArguments(spec: spec, tokens: stage.arguments).allIssues()
+        guard !issues.isEmpty else { return nil }
+        let text = issues.map { "\($0.flag): \($0.issue.message)" }.joined(separator: "\n")
+        return (issues.count, text)
     }
 
     private func copyStage() {
