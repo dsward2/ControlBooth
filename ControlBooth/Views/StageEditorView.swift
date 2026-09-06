@@ -46,15 +46,22 @@ struct StageEditorView: View {
                                 }
                             }
                         }
+                        Section("External tools") {
+                            // No catalog spec, so these fall through to the
+                            // plain Argument N rows below.
+                            ForEach(KnownExternalTools.all, id: \.name) { tool in
+                                Button(tool.name) { stage.path = tool.insertionPath }
+                            }
+                        }
                         Divider()
                         Button("Browse for an external tool…") { chooseToolPath() }
                     } label: {
-                        Label("Choose a built-in helper", systemImage: "square.stack.3d.up.fill")
+                        Label("Choose a helper or external tool", systemImage: "square.stack.3d.up.fill")
                             .labelStyle(.iconOnly)
                     }
                     .menuIndicator(.hidden)
                     .buttonStyle(.borderless)
-                    .help("Insert a built-in Pipeline Helper, or browse for an external tool")
+                    .help("Insert a built-in Pipeline Helper or a common external tool, or browse the filesystem")
                     Button {
                         chooseToolPath()
                     } label: {

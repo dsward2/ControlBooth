@@ -51,14 +51,23 @@ struct PipelineEditorView: View {
                                 }
                             }
                         }
+                        Section("External tools") {
+                            // No catalog spec — the stage editor shows these
+                            // with the plain Argument N rows.
+                            ForEach(KnownExternalTools.all, id: \.name) { tool in
+                                Button(tool.name) {
+                                    stages.append(PipelineStage(path: tool.insertionPath))
+                                }
+                            }
+                        }
                         Divider()
-                        Button("External tool…") { stages.append(PipelineStage()) }
+                        Button("Empty stage (browse for a tool)…") { stages.append(PipelineStage()) }
                     } label: {
                         Label("Add Stage", systemImage: "plus")
                     } primaryAction: {
                         stages.append(PipelineStage())
                     }
-                    .help("Add a built-in helper stage, or an empty stage for an external tool")
+                    .help("Add a built-in helper, a common external tool, or an empty stage")
                     Button {
                         copyPipeline()
                     } label: {
