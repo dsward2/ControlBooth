@@ -8,13 +8,15 @@ struct StageEditorView: View {
     let onMoveDown: () -> Void
     let onDelete: () -> Void
 
+    @State private var showRawArguments = false
+
     var body: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        if !toolName.isEmpty {
-                            Text(toolName)
+                        if let headline {
+                            Text(headline)
                                 .font(.headline)
                                 .lineLimit(1)
                         }
@@ -22,6 +24,26 @@ struct StageEditorView: View {
                             .font(.body.monospaced())
                             .help(stage.path)
                     }
+                    Menu {
+                        ForEach(PipelineHelperSpec.Category.allCases, id: \.self) { category in
+                            let specs = PipelineHelperCatalog.specs(in: category)
+                            if !specs.isEmpty {
+                                Section(category.displayName) {
+                                    ForEach(specs) { helper in
+                                        Button(helper.name) { stage.path = helper.name }
+                                    }
+                                }
+                            }
+                        }
+                        Divider()
+                        Button("Browse for an external tool…") { chooseToolPath() }
+                    } label: {
+                        Label("Choose a built-in helper", systemImage: "square.stack.3d.up.fill")
+                            .labelStyle(.iconOnly)
+                    }
+                    .menuIndicator(.hidden)
+                    .buttonStyle(.borderless)
+                    .help("Insert a built-in Pipeline Helper, or browse for an external tool")
                     Button {
                         chooseToolPath()
                     } label: {
@@ -71,37 +93,61 @@ struct StageEditorView: View {
                     .buttonStyle(.borderless)
                     .help("Delete stage")
                 }
-                ForEach(stage.arguments.indices, id: \.self) { index in
-                    HStack {
-                        TextField("Argument \(index + 1)", text: argumentBinding(index))
-                            .font(.body.monospaced())
-                        Button {
-                            if stage.arguments.indices.contains(index) {
-                                stage.arguments.remove(at: index)
-                            }
-                        } label: {
-                            Label("Remove argument", systemImage: "minus.circle")
-                                .labelStyle(.iconOnly)
-                        }
-                        .buttonStyle(.borderless)
-                        .help("Remove argument")
+                if let spec {
+                    StructuredArgumentsView(spec: spec, stage: $stage)
+                        .padding(.leading, 16)
+                    DisclosureGroup("Raw arguments", isExpanded: $showRawArguments) {
+                        rawArgumentEditor
                     }
                     .padding(.leading, 16)
+                } else {
+                    rawArgumentEditor
                 }
-                Button {
-                    stage.arguments.append("")
-                } label: {
-                    Label("Add Argument", systemImage: "plus.circle")
-                }
-                .buttonStyle(.borderless)
-                .padding(.leading, 16)
             }
             .padding(4)
         }
     }
 
-    private var toolName: String {
-        guard stage.path.contains("/") else { return "" }
+    @ViewBuilder
+    private var rawArgumentEditor: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(stage.arguments.indices, id: \.self) { index in
+                HStack {
+                    TextField("Argument \(index + 1)", text: argumentBinding(index))
+                        .font(.body.monospaced())
+                    Button {
+                        if stage.arguments.indices.contains(index) {
+                            stage.arguments.remove(at: index)
+                        }
+                    } label: {
+                        Label("Remove argument", systemImage: "minus.circle")
+                            .labelStyle(.iconOnly)
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Remove argument")
+                }
+                .padding(.leading, 16)
+            }
+            Button {
+                stage.arguments.append("")
+            } label: {
+                Label("Add Argument", systemImage: "plus.circle")
+            }
+            .buttonStyle(.borderless)
+            .padding(.leading, 16)
+        }
+    }
+
+    /// The bundled-helper spec for the current tool path, or `nil` for an
+    /// external tool / unrecognised name — in which case the plain
+    /// `Argument N` rows are shown instead of the structured editor.
+    private var spec: PipelineHelperSpec? {
+        PipelineHelperCatalog.spec(forToolPath: stage.path)
+    }
+
+    private var headline: String? {
+        if let spec { return spec.name }
+        guard stage.path.contains("/") else { return nil }
         return URL(fileURLWithPath: stage.path).lastPathComponent
     }
 
