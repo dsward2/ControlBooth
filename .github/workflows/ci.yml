@@ -59,6 +59,20 @@ jobs:
           sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
           xcodebuild -version
 
+      # The rtl_fm_localradio helper target compiles against libusb and its
+      # HEADER_SEARCH_PATHS / library paths are hard-coded to MacPorts'
+      # /opt/local locations. The runner has Homebrew, not MacPorts, so install
+      # libusb and bridge it into the paths the project expects.
+      - name: Set up libusb for rtl_fm_localradio
+        run: |
+          brew list libusb >/dev/null 2>&1 || brew install libusb
+          prefix="$(brew --prefix libusb)"
+          sudo mkdir -p /opt/local/include/libusb-1.0 /opt/local/lib
+          sudo ln -sf "$prefix/include/libusb-1.0/libusb.h" /opt/local/include/libusb-1.0/libusb.h
+          sudo ln -sf "$prefix/lib/libusb-1.0.0.dylib" /opt/local/lib/libusb-1.0.0.dylib
+          sudo ln -sf /opt/local/lib/libusb-1.0.0.dylib /opt/local/lib/libusb-1.0.dylib
+          ls -l /opt/local/include/libusb-1.0/libusb.h /opt/local/lib/libusb-1.0*.dylib
+
       - name: Resolve package dependencies
         working-directory: ControlBooth
         run: xcodebuild -resolvePackageDependencies -project ControlBooth.xcodeproj -scheme ControlBooth
