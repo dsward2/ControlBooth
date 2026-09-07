@@ -54,6 +54,17 @@ jobs:
           path: SharedLogging
           token: ${{ secrets.CI_SIBLING_TOKEN || github.token }}
 
+      # The "Embed AirPlayReceiver Helper" build phase copies vendored binaries
+      # (sox, stereodemux and their dylib closure) from the sibling AntennaHead
+      # checkout into the app bundle.
+      - name: Check out AntennaHead (vendored helper binaries)
+        uses: actions/checkout@v4
+        with:
+          repository: dsward2/AntennaHead
+          ref: main
+          path: AntennaHead
+          token: ${{ secrets.CI_SIBLING_TOKEN || github.token }}
+
       - name: Select newest Xcode
         run: |
           sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
