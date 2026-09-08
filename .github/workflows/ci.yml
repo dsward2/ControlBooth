@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: xcodebuild build
+    runs-on: macos-26
+
+    steps:
+      - name: Check out ControlBooth
+        uses: actions/checkout@v4
+        with:
+          path: ControlBooth
+
+      # ControlBooth.xcodeproj references ../PipelineHelpers, ../AirPlayReceiver
+      # and ../SharedLogging as local Swift packages, so those sibling repos
+      # have to sit next to this one on disk. Needs a token that can read the
+      # private siblings: add a fine-grained PAT with "Contents: read" on
+      # dsward2/PipelineHelpers, dsward2/AirPlayReceiver and
+      # dsward2/SharedLogging as the repo secret CI_SIBLING_TOKEN.
+      - name: Check out PipelineHelpers (local package)
+        uses: actions/checkout@v4
+        with:
+          repository: dsward2/PipelineHelpers
+          ref: main
+          path: PipelineHelpers
+          token: ${{ secrets.CI_SIBLING_TOKEN || github.token }}
+
+      - name: Check out AirPlayReceiver (local package)
+        uses: actions/checkout@v4
+        with:
+          repository: dsward2/AirPlayReceiver
+          ref: main
+          path: AirPlayReceiver
+          token: ${{ secrets.CI_SIBLING_TOKEN || github.token }}
+
+      - name: Check out SharedLogging (local package)
+        uses: actions/checkout@v4
+        with:
+          repository: dsward2/SharedLogging
+          ref: main
+          path: SharedLogging
+          token: ${{ secrets.CI_SIBLING_TOKEN || github.token }}
+
+      # The "Embed AirPlayReceiver Helper" build phase copies vendored binaries
+      # (sox, stereodemux and their dylib closure) from the sibling AntennaHead
+      # checkout into the app bundle.
+      - name: Check out AntennaHead (vendored helper binaries)
+        uses: actions/checkout@v4
+        with:
+          repository: dsward2/AntennaHead
+          ref: main
+          path: AntennaHead
+          token: ${{ secrets.CI_SIBLING_TOKEN || github.token }}
+
+      - name: Select newest Xcode
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
+          xcodebuild -version
+
+      # The rtl_fm_localradio helper target compiles against libusb and its
+      # HEADER_SEARCH_PATHS / library paths are hard-coded to MacPorts'
+      # /opt/local locations. The runner has Homebrew, not MacPorts, so install
+      # libusb and bridge it into the paths the project expects.
+      - name: Set up libusb for rtl_fm_localradio
+        run: |
+          brew list libusb >/dev/null 2>&1 || brew install libusb
+          prefix="$(brew --prefix libusb)"
+          sudo mkdir -p /opt/local/include/libusb-1.0 /opt/local/lib
+          sudo ln -sf "$prefix/include/libusb-1.0/libusb.h" /opt/local/include/libusb-1.0/libusb.h
+          sudo ln -sf "$prefix/lib/libusb-1.0.0.dylib" /opt/local/lib/libusb-1.0.0.dylib
+          sudo ln -sf /opt/local/lib/libusb-1.0.0.dylib /opt/local/lib/libusb-1.0.dylib
+          ls -l /opt/local/include/libusb-1.0/libusb.h /opt/local/lib/libusb-1.0*.dylib
+
+      - name: Resolve package dependencies
+        working-directory: ControlBooth
+        run: xcodebuild -resolvePackageDependencies -project ControlBooth.xcodeproj -scheme ControlBooth
+
+      - name: Build
+        working-directory: ControlBooth
+        run: |
+          xcodebuild build \
+            -project ControlBooth.xcodeproj \
+            -scheme ControlBooth \
+            -configuration Debug \
+            -destination 'generic/platform=macOS' \
+            CODE_SIGNING_ALLOWED=NO
