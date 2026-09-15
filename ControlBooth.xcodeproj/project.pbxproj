@@ -901,6 +901,7 @@
 				);
 				PRODUCT_NAME = rtl_fm_localradio;
 				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
 			};
 			name = Release;
 		};
@@ -941,6 +942,7 @@
 				);
 				PRODUCT_NAME = rtl_fm_localradio;
 				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
 			};
 			name = Debug;
 		};
