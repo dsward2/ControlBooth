@@ -16,6 +16,13 @@ enum SpatialControlSender {
         send("pos \(azimuth) \(elevation)\n", toPort: port)
     }
 
+    /// Sends `delay <seconds>` to a running `PCMDelay` stage's control port.
+    /// Not spatial, but the same fire-and-forget loopback UDP mechanism, so it
+    /// lives here rather than duplicating `send`.
+    static func sendDelay(_ seconds: Double, toPort port: UInt16) {
+        send("delay \(seconds)\n", toPort: port)
+    }
+
     private static func send(_ message: String, toPort port: UInt16) {
         guard let endpointPort = NWEndpoint.Port(rawValue: port) else { return }
         let connection = NWConnection(host: "127.0.0.1", port: endpointPort, using: .udp)

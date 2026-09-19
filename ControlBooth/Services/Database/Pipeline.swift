@@ -102,4 +102,20 @@ extension Array where Element == PipelineStage {
         }
         return nil
     }
+
+    /// The numeric value following `flag` in the first stage whose executable
+    /// matches `toolName` (same matching rule as `controlPort(forTool:)`), or
+    /// `nil` if there is no such stage/flag or the value isn't a number. Lets a
+    /// status control start from what the stage was actually configured with
+    /// (e.g. `PCMDelay`'s `--delay` / `--max-delay`).
+    func doubleArgument(_ flag: String, forTool toolName: String) -> Double? {
+        for stage in self {
+            guard (stage.path as NSString).lastPathComponent == toolName else { continue }
+            guard let index = stage.arguments.firstIndex(of: flag),
+                  index + 1 < stage.arguments.count,
+                  let value = Double(stage.arguments[index + 1]) else { continue }
+            return value
+        }
+        return nil
+    }
 }

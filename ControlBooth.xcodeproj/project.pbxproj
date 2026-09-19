@@ -9,10 +9,6 @@
 /* Begin PBXBuildFile section */
 		04682A61C5430A617C6A4387 /* PCMSpeechSynth in Frameworks */ = {isa = PBXBuildFile; productRef = E87D80B587E6E414ACF764FE /* PCMSpeechSynth */; };
 		0DB533FFB7D9D2B75A6AB91F /* PCMJitterBuffer in CopyFiles */ = {isa = PBXBuildFile; productRef = 1AD803BDA4DC219FF701FB37 /* PCMJitterBuffer */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		D1AF7E60000000000000000A /* PCMDistanceGain in Frameworks */ = {isa = PBXBuildFile; productRef = D1AF7E60000000000000000B /* PCMDistanceGain */; };
-		D1AF7E60000000000000000C /* PCMDistanceGain in CopyFiles */ = {isa = PBXBuildFile; productRef = D1AF7E60000000000000000B /* PCMDistanceGain */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		D1AF7E61000000000000000A /* PCMBinauralPanner in Frameworks */ = {isa = PBXBuildFile; productRef = D1AF7E61000000000000000B /* PCMBinauralPanner */; };
-		D1AF7E61000000000000000C /* PCMBinauralPanner in CopyFiles */ = {isa = PBXBuildFile; productRef = D1AF7E61000000000000000B /* PCMBinauralPanner */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		0E2AEE3330106E75007F4143 /* PCMUDPSender in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEBB012FFAC00000BA711A /* PCMUDPSender */; };
 		0EAEB9B42FF9865E00BA711A /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEB9B32FF9865E00BA711A /* GRDB */; };
 		0EAEB9E12FFAA29A00BA711A /* PipelineRunner in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEB9E02FFAA29A00BA711A /* PipelineRunner */; };
@@ -37,6 +33,12 @@
 		B55DF438D08A4992D16111A5 /* PCMMixer in CopyFiles */ = {isa = PBXBuildFile; productRef = 97F181EF50161793627B259B /* PCMMixer */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		C01364B12A20465482BA3899 /* convenience.c in Sources */ = {isa = PBXBuildFile; fileRef = A17010DEBCF7482281577816 /* convenience.c */; };
 		CF775919938149B7836375F4 /* libusb-1.0.0.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = A80167D04BF74E1288A14B9B /* libusb-1.0.0.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		D1AF7E60000000000000000A /* PCMDistanceGain in Frameworks */ = {isa = PBXBuildFile; productRef = D1AF7E60000000000000000B /* PCMDistanceGain */; };
+		D1AF7E60000000000000000C /* PCMDistanceGain in CopyFiles */ = {isa = PBXBuildFile; productRef = D1AF7E60000000000000000B /* PCMDistanceGain */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		D1AF7E61000000000000000A /* PCMBinauralPanner in Frameworks */ = {isa = PBXBuildFile; productRef = D1AF7E61000000000000000B /* PCMBinauralPanner */; };
+		D1AF7E62000000000000000A /* PCMDelay in Frameworks */ = {isa = PBXBuildFile; productRef = D1AF7E62000000000000000B /* PCMDelay */; };
+		D1AF7E61000000000000000C /* PCMBinauralPanner in CopyFiles */ = {isa = PBXBuildFile; productRef = D1AF7E61000000000000000B /* PCMBinauralPanner */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		D1AF7E62000000000000000C /* PCMDelay in CopyFiles */ = {isa = PBXBuildFile; productRef = D1AF7E62000000000000000B /* PCMDelay */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		DB5A20EE6CFE4048B722772C /* rtl_fm_localradio in CopyFiles */ = {isa = PBXBuildFile; fileRef = 049830B9029346CEA2B6CA57 /* rtl_fm_localradio */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		EBE4EA8F13C94E588585C360 /* rtl_fm_localradio.m in Sources */ = {isa = PBXBuildFile; fileRef = 35BF97FA87664F8BB526D86A /* rtl_fm_localradio.m */; };
 		F3CA606A9E82643AF40DB604 /* LiveAudioRecorder in CopyFiles */ = {isa = PBXBuildFile; productRef = 18785847439A147EDA809002 /* LiveAudioRecorder */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
@@ -87,6 +89,7 @@
 				DB5A20EE6CFE4048B722772C /* rtl_fm_localradio in CopyFiles */,
 				D1AF7E60000000000000000C /* PCMDistanceGain in CopyFiles */,
 				D1AF7E61000000000000000C /* PCMBinauralPanner in CopyFiles */,
+				D1AF7E62000000000000000C /* PCMDelay in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -155,6 +158,7 @@
 				682B2C68708AF6B3ABA5A039 /* LiveAudioRecorder in Frameworks */,
 				D1AF7E60000000000000000A /* PCMDistanceGain in Frameworks */,
 				D1AF7E61000000000000000A /* PCMBinauralPanner in Frameworks */,
+				D1AF7E62000000000000000A /* PCMDelay in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -272,6 +276,7 @@
 				18785847439A147EDA809002 /* LiveAudioRecorder */,
 				D1AF7E60000000000000000B /* PCMDistanceGain */,
 				D1AF7E61000000000000000B /* PCMBinauralPanner */,
+				D1AF7E62000000000000000B /* PCMDelay */,
 			);
 			productName = ControlBooth;
 			productReference = 0EAEB94E2FF95D2500BA711A /* ControlBooth.app */;
@@ -1083,16 +1088,6 @@
 			package = F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */;
 			productName = AudioInputCapture;
 		};
-		E87D80B587E6E414ACF764FE /* PCMSpeechSynth */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */;
-			productName = PCMSpeechSynth;
-		};
-		E99738898D9599DAC90193CC /* PCMUDPReceiver */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */;
-			productName = PCMUDPReceiver;
-		};
 		D1AF7E60000000000000000B /* PCMDistanceGain */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */;
@@ -1102,6 +1097,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */;
 			productName = PCMBinauralPanner;
+		};
+		D1AF7E62000000000000000B /* PCMDelay */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */;
+			productName = PCMDelay;
+		};
+		E87D80B587E6E414ACF764FE /* PCMSpeechSynth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */;
+			productName = PCMSpeechSynth;
+		};
+		E99738898D9599DAC90193CC /* PCMUDPReceiver */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */;
+			productName = PCMUDPReceiver;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

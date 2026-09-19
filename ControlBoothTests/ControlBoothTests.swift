@@ -49,4 +49,21 @@ struct ControlBoothTests {
         let stages = [PipelineStage(path: "PCMBinauralPanner", arguments: ["--control-port", "not-a-port"])]
         #expect(stages.controlPort(forTool: "PCMBinauralPanner") == nil)
     }
+
+    @Test func doubleArgumentReadsValueForMatchingTool() async throws {
+        let stages = [
+            PipelineStage(path: "PCMBinauralPanner", arguments: ["--delay", "99"]),
+            PipelineStage(path: "PCMDelay", arguments: ["--delay", "12.5", "--max-delay", "45", "--control-port", "7003"])
+        ]
+        #expect(stages.doubleArgument("--delay", forTool: "PCMDelay") == 12.5)
+        #expect(stages.doubleArgument("--max-delay", forTool: "PCMDelay") == 45)
+        #expect(stages.controlPort(forTool: "PCMDelay") == 7003)
+    }
+
+    @Test func doubleArgumentIsNilWhenMissingOrMalformed() async throws {
+        let stages = [PipelineStage(path: "PCMDelay", arguments: ["--delay", "soon", "--max-delay"])]
+        #expect(stages.doubleArgument("--delay", forTool: "PCMDelay") == nil)
+        #expect(stages.doubleArgument("--max-delay", forTool: "PCMDelay") == nil)
+        #expect(stages.doubleArgument("--delay", forTool: "PCMDistanceGain") == nil)
+    }
 }
