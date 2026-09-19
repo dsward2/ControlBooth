@@ -11,6 +11,10 @@ struct PipelineStatusView: View {
     @State private var distance: Double = 1.0
     @State private var azimuth: Double = 0
     @State private var elevation: Double = 0
+    // Same in-session choice, but seeded from the PCMDelay stage's own
+    // `--delay` each time the delay row appears (i.e. each time the pipeline
+    // starts), so the slider always matches what the stage was launched with.
+    @State private var delay: Double = 0
 
     var body: some View {
         // Periodic refresh: task liveness (process?.isRunning) isn't observable,
@@ -27,6 +31,7 @@ struct PipelineStatusView: View {
                     }
                     if manager.status == .running {
                         spatialControls
+                        delayControls
                     }
                     Text(manager.tasksInfoString())
                         .font(.caption.monospaced())
@@ -78,6 +83,31 @@ struct PipelineStatusView: View {
                 }
             }
             .padding(.vertical, 4)
+        }
+    }
+
+    /// Live delay control for a running pipeline's `PCMDelay` stage, if it has
+    /// one with a `--control-port` — discovered from the pipeline's own
+    /// arguments, like `spatialControls`. The slider's range is the stage's
+    /// `--max-delay` (its own default, 60 s, when absent). Shows nothing for a
+    /// pipeline without the stage.
+    @ViewBuilder
+    private var delayControls: some View {
+        let stages = pipeline.stages
+        if let port = stages.controlPort(forTool: "PCMDelay") {
+            let maxDelay = stages.doubleArgument("--max-delay", forTool: "PCMDelay") ?? 60
+            let startDelay = min(stages.doubleArgument("--delay", forTool: "PCMDelay") ?? 0, maxDelay)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Audio Delay").font(.headline)
+                spatialRow("Delay", value: $delay, range: 0...maxDelay, format: "%.1f s") { newValue in
+                    SpatialControlSender.sendDelay(newValue, toPort: port)
+                }
+                Text("Holds the audio back to line it up with a lagging picture. Raising it pauses briefly; lowering it skips ahead.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.vertical, 4)
+            .onAppear { delay = startDelay }
         }
     }
 
