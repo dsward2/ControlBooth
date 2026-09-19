@@ -102,6 +102,16 @@ struct PipelineStatusView: View {
                 spatialRow("Delay", value: $delay, range: 0...maxDelay, format: "%.1f s") { newValue in
                     SpatialControlSender.sendDelay(newValue, toPort: port)
                 }
+                HStack {
+                    Button("Delay 1 Second") {
+                        delay = min(delay + 1, maxDelay)
+                        SpatialControlSender.sendDelay(delay, toPort: port)
+                    }
+                    Button("Skip 1 Second") {
+                        delay = max(delay - 1, 0)
+                        SpatialControlSender.sendDelay(delay, toPort: port)
+                    }
+                }
                 Text("Holds the audio back to line it up with a lagging picture. Raising it pauses briefly; lowering it skips ahead.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
