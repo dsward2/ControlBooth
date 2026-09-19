@@ -347,13 +347,16 @@ has this stage with a <code>--control-port</code>. Output stays frame-for-frame 
 delay is counted in samples: the source must already be real-time paced (put
 <code>PCMJitterBuffer</code> ahead of a bursty one such as nrsc5). A starting delay plays as leading
 silence. Raising the delay live pauses briefly (fade out, silence, fade in — nothing is repeated);
-lowering it fades out, skips ahead, and fades in. Memory is fixed by <code>--max-delay</code>:
-about 188&nbsp;KiB per second at 48&nbsp;kHz stereo (60&nbsp;s ≈ 11.5&nbsp;MB).</p>
+lowering it fades out, skips ahead, and fades in. Place it before any
+<code>PCMTranscriber</code> so captions are cut from the delayed audio. Buffer capacity is set by
+<code>--max-delay</code> (default 60&nbsp;s, up to 600&nbsp;s — set it to 300 or more for a long
+uplink/internet chain); it costs about 188&nbsp;KiB per second of 48&nbsp;kHz stereo, committed
+only as audio actually fills the buffer (a full 5&nbsp;min ≈ 58&nbsp;MB)</p>
 <table>
   <tr><th>Option</th><th>Description</th></tr>
   <tr><td><code>--rate &lt;hz&gt;</code> / <code>--channels &lt;n&gt;</code></td><td>Stream format. Default 48000 / 2.</td></tr>
   <tr><td><code>--delay &lt;sec&gt;</code></td><td>Initial delay in seconds. Default 0.</td></tr>
-  <tr><td><code>--max-delay &lt;sec&gt;</code></td><td>Largest delay accepted; sets the buffer size. Default 60.</td></tr>
+  <tr><td><code>--max-delay &lt;sec&gt;</code></td><td>Largest delay accepted (up to 600); sets the buffer capacity. Default 60.</td></tr>
   <tr><td><code>--fade-ms &lt;ms&gt;</code></td><td>Fade length used when the delay changes. Default 30.</td></tr>
   <tr><td><code>--control-port &lt;n&gt;</code></td><td>UDP loopback port for live updates.</td></tr>
   <tr><td><code>--exit-with-parent</code></td><td>Exit if the app dies.</td></tr>
