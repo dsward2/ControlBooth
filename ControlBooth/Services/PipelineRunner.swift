@@ -72,6 +72,47 @@ final class PipelineRunner {
         manager(for: pipeline)?.status == .running
     }
 
+    /// Pipelines whose UI Play is waiting on AntennaHead's reply, so a second
+    /// click during that wait can't start the pipeline twice.
+    private var startsInFlight: Set<Int64> = []
+
+    /// The Play buttons' entry point: tells AntennaHead the pipeline is
+    /// starting (so it opens its receiver and shows the pipeline name on its
+    /// Remote Control view), *then* starts it. Only for UI-initiated starts.
+    /// AntennaHead's own Listen and the scripting commands call `start(_:)`
+    /// directly — AntennaHead already knows about those, and echoing back would
+    /// have the two apps send each other blocking events at the same moment.
+    ///
+    /// Only pipelines aimed at this Mac are announced: a pipeline sending to
+    /// another host isn't AntennaHead's to listen to.
+    func startAnnouncingToAntennaHead(_ pipeline: Pipeline) async throws {
+        guard let id = pipeline.id, !startsInFlight.contains(id) else { return }
+        if Self.isLoopback(pipeline.destinationHost) {
+            startsInFlight.insert(id)
+            defer { startsInFlight.remove(id) }
+            let name = pipeline.name
+            // Off the main thread: the send blocks until AntennaHead replies.
+            await Task.detached(priority: .userInitiated) {
+                AntennaHeadClient.announcePipelineStarting(name)
+            }.value
+        }
+        try start(pipeline)
+    }
+
+    /// The Stop buttons' entry point: stops the pipeline, then tells AntennaHead
+    /// so it returns to its filler and updates its Remote Control view.
+    func stopAnnouncingToAntennaHead(_ pipeline: Pipeline) {
+        let wasRunning = isRunning(pipeline)
+        stop(pipeline)
+        guard wasRunning, Self.isLoopback(pipeline.destinationHost) else { return }
+        let name = pipeline.name
+        Task.detached(priority: .utility) { AntennaHeadClient.announcePipelineStopped(name) }
+    }
+
+    private static func isLoopback(_ host: String) -> Bool {
+        ["127.0.0.1", "localhost", "::1"].contains(host.trimmingCharacters(in: .whitespaces).lowercased())
+    }
+
     func lastFailure(for pipeline: Pipeline) -> TaskPipelineManager.Failure? {
         manager(for: pipeline)?.lastFailure
     }

@@ -159,10 +159,10 @@ so the sandboxed AntennaHead can send them with either entitlement:
   `{ "com.dsward.ControlBooth": ["com.dsward.ControlBooth.pipelines"] }`
   (no prompt).
 
-### ControlBooth sends (implemented here, pending AntennaHead handlers)
+### ControlBooth sends (implemented; AntennaHead handles them)
 
 `Services/AntennaHeadClient.swift` sends custom events (class `AntH`) to
-`com.dsward.AntennaHead`:
+`com.dsward.AntennaHead`, handled by AntennaHead's `ControlBoothEventReceiver`:
 
 | Event ID | Meaning                | Direct parameter | Reply          |
 |----------|------------------------|------------------|----------------|
@@ -170,8 +170,24 @@ so the sandboxed AntennaHead can send them with either entitlement:
 | `Stop`   | stop listening task    | task name        | —              |
 | `Runs`   | listening task names   | —                | list of text   |
 
-AntennaHead's side does not exist yet — it needs `NSAppleEventManager`
-handlers (or its own sdef) for class `AntH` with those IDs. Sending requires
+The **Play** and **Stop** buttons send these automatically (only for pipelines
+whose destination host is this Mac, and only when AntennaHead is running):
+
+- Play sends `Strt` with the pipeline's name and **waits for the reply before
+  starting the pipeline**. AntennaHead holds the reply until its UDP receiver
+  (port 6019) is bound; without that, the pipeline's `PCMUDPSender` would hit an
+  unbound port on its first send, exit, and collapse the pipeline. AntennaHead
+  also shows the name as the active source and on its ControlBooth Remote
+  Control page.
+- Stop sends `Stop` (no reply awaited); AntennaHead ignores it unless that
+  pipeline is the one it is listening to, and otherwise returns to its filler.
+
+Starts arriving *from* AntennaHead (its own Listen, or the `start pipeline`
+scripting command) do not send `Strt` back — AntennaHead already knows, and two
+apps sending each other blocking events at once would stall until timeout. A
+repeated `Strt` for a pipeline AntennaHead is already listening to is ignored.
+
+Sending requires
 the `com.apple.security.automation.apple-events` entitlement
 (`ControlBooth.entitlements`, needed under hardened runtime) and the
 `NSAppleEventsUsageDescription` in `ControlBooth-Info.plist`; the first send

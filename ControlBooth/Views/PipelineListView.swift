@@ -101,18 +101,20 @@ struct PipelineRowView: View {
 
     private func toggleRunning() {
         if runner.isRunning(pipeline) {
-            runner.stop(pipeline)
+            runner.stopAnnouncingToAntennaHead(pipeline)
         } else {
-            do {
-                try runner.start(pipeline)
-            } catch {
-                errorMessage = "\(error)"
+            Task {
+                do {
+                    try await runner.startAnnouncingToAntennaHead(pipeline)
+                } catch {
+                    errorMessage = "\(error)"
+                }
             }
         }
     }
 
     private func deletePipeline() {
-        runner.stop(pipeline)
+        runner.stopAnnouncingToAntennaHead(pipeline)
         do {
             try store.delete(pipeline)
         } catch {
