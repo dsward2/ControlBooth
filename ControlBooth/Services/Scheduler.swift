@@ -81,8 +81,12 @@ final class Scheduler {
                             lastError = "Recording start failed for '\(next.event.name)': \(error)"
                         }
                     }
+                    // Record-with-playback sends to AntennaHead over UDP, so tell it
+                    // first: AntennaHead only opens its receiver on that message,
+                    // and a pipeline started without it dies on its first send
+                    // (see `startAnnouncingToAntennaHead`).
                     do {
-                        try runner.start(pipeline)
+                        try await runner.startAnnouncingToAntennaHead(pipeline)
                     } catch {
                         lastError = "Pipeline start failed for '\(next.event.name)': \(error)"
                     }
@@ -110,7 +114,12 @@ final class Scheduler {
                     // For recording-only, this is what actually finalizes the
                     // file — stopping LiveAudioRecorder closes it.
                     guard let runner, let pipeline = pipelineStore.pipeline(withID: pipelineId) else { return }
-                    runner.stop(pipeline)
+                    if recordingOnly {
+                        runner.stop(pipeline)
+                    } else {
+                        // Also tells AntennaHead, so it returns to its filler.
+                        runner.stopAnnouncingToAntennaHead(pipeline)
+                    }
                 }
             }
 
