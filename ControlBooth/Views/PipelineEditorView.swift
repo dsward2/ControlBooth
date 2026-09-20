@@ -112,7 +112,7 @@ struct PipelineEditorView: View {
                 }
                 if runner.isRunning(pipeline) {
                     Button {
-                        runner.stop(pipeline)
+                        runner.stopAnnouncingToAntennaHead(pipeline)
                     } label: {
                         Label("Stop", systemImage: "stop.fill")
                     }
@@ -154,7 +154,13 @@ struct PipelineEditorView: View {
     private func saveAndStart() {
         do {
             let saved = try persist()
-            try runner.start(saved)
+            Task {
+                do {
+                    try await runner.startAnnouncingToAntennaHead(saved)
+                } catch {
+                    errorMessage = "\(error)"
+                }
+            }
         } catch {
             errorMessage = "\(error)"
         }

@@ -76,6 +76,41 @@ enum AntennaHeadClient {
         _ = try send(eventID: "RecP", directParameter: nil)
     }
 
+    /// Whether AntennaHead is running, without `isAntennaHeadRunning`'s log line.
+    private static var antennaHeadIsRunning: Bool {
+        !NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).isEmpty
+    }
+
+    /// Tells AntennaHead a pipeline is about to start sending, and waits until
+    /// AntennaHead has bound its receiver (its reply is held until then). Call
+    /// this *before* starting the pipeline: AntennaHead only opens its UDP
+    /// receiver on this message, and a `PCMUDPSender` whose first datagram hits
+    /// an unbound port exits, collapsing the whole pipeline (SIGPIPE cascade).
+    ///
+    /// Best-effort: does nothing when AntennaHead isn't running, and a failure
+    /// is logged, never thrown — Play must still start the pipeline (to a
+    /// custom destination, or before AntennaHead is launched). Blocks for the
+    /// reply, so call it off the main thread.
+    static func announcePipelineStarting(_ name: String) {
+        guard antennaHeadIsRunning else { return }
+        do {
+            try startListening(task: name)
+        } catch {
+            let message = "couldn't tell AntennaHead '\(name)' is starting: \(error)"
+            Task { @MainActor in LogStore.shared.log(.warning, source: "AntennaHeadClient", message) }
+        }
+    }
+
+    /// Tells AntennaHead a pipeline was stopped from ControlBooth so it can
+    /// drop back to its filler and update its Remote Control view. Best-effort
+    /// and non-blocking; AntennaHead ignores it unless `name` is the pipeline it
+    /// is listening to.
+    static func announcePipelineStopped(_ name: String) {
+        guard antennaHeadIsRunning else { return }
+        _ = try? send(eventID: "Stop", directParameter: NSAppleEventDescriptor(string: name),
+                      waitForReply: false)
+    }
+
     /// Tells AntennaHead ControlBooth is about to quit. Best-effort and
     /// non-blocking — call from `applicationWillTerminate`, where waiting on
     /// a reply (or even AntennaHead's `notRunning` check raising) must never
