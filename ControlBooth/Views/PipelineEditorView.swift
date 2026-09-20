@@ -67,20 +67,20 @@ struct PipelineEditorView: View {
                     } primaryAction: {
                         stages.append(PipelineStage())
                     }
-                    .help("Add a built-in helper, a common external tool, or an empty stage")
+                    .helpTip("Add a built-in helper, a common external tool, or an empty stage")
                     Button {
                         copyPipeline()
                     } label: {
                         Label("Copy Pipeline", systemImage: "doc.on.doc")
                     }
                     .disabled(stages.isEmpty)
-                    .help("Copy all stages as |-joined CLI text")
+                    .helpTip("Copy all stages as |-joined CLI text")
                     Button {
                         pastePipeline()
                     } label: {
                         Label("Paste Pipeline", systemImage: "doc.on.clipboard")
                     }
-                    .help("Replace all stages with pasted CLI text")
+                    .helpTip("Replace all stages with pasted CLI text")
                 }
             } header: {
                 HStack {

@@ -27,7 +27,7 @@ struct StageEditorView: View {
                                     )
                                     .font(.caption)
                                     .foregroundStyle(.orange)
-                                    .help(issueSummary.text)
+                                    .helpTip(issueSummary.text)
                                 }
                             }
                         }
@@ -61,7 +61,7 @@ struct StageEditorView: View {
                     }
                     .menuIndicator(.hidden)
                     .buttonStyle(.borderless)
-                    .help("Insert a built-in Pipeline Helper or a common external tool, or browse the filesystem")
+                    .helpTip("Insert a built-in Pipeline Helper or a common external tool, or browse the filesystem")
                     Button {
                         chooseToolPath()
                     } label: {
@@ -69,7 +69,7 @@ struct StageEditorView: View {
                             .labelStyle(.iconOnly)
                     }
                     .buttonStyle(.borderless)
-                    .help("Choose tool with a file picker")
+                    .helpTip("Choose tool with a file picker")
                     Button {
                         copyStage()
                     } label: {
@@ -77,7 +77,7 @@ struct StageEditorView: View {
                             .labelStyle(.iconOnly)
                     }
                     .buttonStyle(.borderless)
-                    .help("Copy this stage as CLI text")
+                    .helpTip("Copy this stage as CLI text")
                     Button {
                         pasteStage()
                     } label: {
@@ -85,7 +85,7 @@ struct StageEditorView: View {
                             .labelStyle(.iconOnly)
                     }
                     .buttonStyle(.borderless)
-                    .help("Paste a stage's CLI text over this one")
+                    .helpTip("Paste a stage's CLI text over this one")
                     Button {
                         onMoveUp()
                     } label: {
@@ -93,7 +93,7 @@ struct StageEditorView: View {
                             .labelStyle(.iconOnly)
                     }
                     .buttonStyle(.borderless)
-                    .help("Move stage up")
+                    .helpTip("Move stage up")
                     Button {
                         onMoveDown()
                     } label: {
@@ -101,7 +101,7 @@ struct StageEditorView: View {
                             .labelStyle(.iconOnly)
                     }
                     .buttonStyle(.borderless)
-                    .help("Move stage down")
+                    .helpTip("Move stage down")
                     Button {
                         onDelete()
                     } label: {
@@ -109,7 +109,7 @@ struct StageEditorView: View {
                             .labelStyle(.iconOnly)
                     }
                     .buttonStyle(.borderless)
-                    .help("Delete stage")
+                    .helpTip("Delete stage")
                 }
                 if let spec {
                     StructuredArgumentsView(spec: spec, stage: $stage)
@@ -153,7 +153,7 @@ struct StageEditorView: View {
                             .labelStyle(.iconOnly)
                     }
                     .buttonStyle(.borderless)
-                    .help("Remove argument")
+                    .helpTip("Remove argument")
                 }
                 .padding(.leading, 16)
             }
