@@ -42,5 +42,26 @@
             </result>
         </command>
 
+        <command name="airplay status" code="CBthApSt"
+                 description="Whether the AirPlay receiver is on, relaying to AntennaHead, and actively receiving audio.">
+            <cocoa class="AirPlayStatusCommand"/>
+            <access-group identifier="com.dsward.ControlBooth.pipelines"/>
+            <result description="[enabled, relayEnabled, isReceivingAudio], in that order.">
+                <type type="boolean" list="yes"/>
+            </result>
+        </command>
+
+        <command name="start airplay relay" code="CBthApOn"
+                 description="Turn the AirPlay receiver on if needed and start relaying its audio to AntennaHead.">
+            <cocoa class="StartAirPlayRelayCommand"/>
+            <access-group identifier="com.dsward.ControlBooth.pipelines"/>
+        </command>
+
+        <command name="stop airplay relay" code="CBthApOf"
+                 description="Stop relaying the AirPlay receiver's audio to AntennaHead, without turning the receiver off.">
+            <cocoa class="StopAirPlayRelayCommand"/>
+            <access-group identifier="com.dsward.ControlBooth.pipelines"/>
+        </command>
+
     </suite>
 </dictionary>

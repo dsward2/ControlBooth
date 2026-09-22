@@ -31,6 +31,7 @@ struct ControlBoothApp: App {
                     appDelegate.store = store
                     appDelegate.airPlayReceiverService = airPlayReceiverService
                     scheduler.reschedule(events: eventStore.events, pipelineStore: store, runner: runner)
+                    airPlayReceiverService.setSettingsStore(airPlaySettingsStore)
                     airPlayReceiverService.applySettings(airPlaySettingsStore.settings)
                 }
                 .onChange(of: eventStore.events) {

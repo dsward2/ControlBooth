@@ -31,7 +31,15 @@ import SharedLogging
 /// user-action contexts, not tight loops. The first send triggers macOS's
 /// one-time Automation consent prompt ("ControlBooth wants access to control
 /// AntennaHead").
-enum AntennaHeadClient {
+///
+/// `nonisolated`: this project defaults every declaration to `@MainActor`
+/// (`SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`), which would otherwise make
+/// every blocking call here implicitly hop back onto the main actor to run —
+/// silently defeating every caller's `Task.detached { AntennaHeadClient... }`
+/// wrapping (used specifically so the up-to-8s wait for AntennaHead's reply
+/// doesn't freeze the UI). No stored state here, so it's safe off-actor;
+/// the few log calls inside explicitly hop back to `@MainActor` themselves.
+nonisolated enum AntennaHeadClient {
     static let bundleIdentifier = "com.dsward.AntennaHead"
 
     enum ClientError: Error, CustomStringConvertible {

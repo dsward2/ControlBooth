@@ -114,6 +114,17 @@ final class AppDatabase {
                 t.add(column: "recording_only", .boolean).notNull().defaults(to: false)
             }
         }
+        m.registerMigration("v9_airplay_relay_enabled") { db in
+            // Splits "AirPlay receiver is decoding" from "decoded audio is
+            // relayed to AntennaHead" — see AirPlaySettings.relayEnabled.
+            // Defaults false even for an existing enabled=1 row: relaying
+            // used to be implied by enabled, so silently resuming it after
+            // this upgrade could re-contend for AntennaHead's UDP input port
+            // without the user having asked for it again.
+            try db.alter(table: "airplay_receiver_settings") { t in
+                t.add(column: "relay_enabled", .boolean).notNull().defaults(to: false)
+            }
+        }
         return m
     }
 

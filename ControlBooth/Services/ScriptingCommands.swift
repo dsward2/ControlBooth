@@ -19,6 +19,16 @@ private func scriptingServices(reportingTo command: NSScriptCommand) -> (store: 
 }
 
 @MainActor
+private func airPlayService(reportingTo command: NSScriptCommand) -> AirPlayReceiverService? {
+    guard let service = AppDelegate.shared?.airPlayReceiverService else {
+        command.scriptErrorNumber = NSInternalScriptError
+        command.scriptErrorString = "ControlBooth is still launching; try again."
+        return nil
+    }
+    return service
+}
+
+@MainActor
 private func requiredPipelineName(from command: NSScriptCommand) -> String? {
     guard let name = command.directParameter as? String, !name.isEmpty else {
         command.scriptErrorNumber = NSRequiredArgumentsMissingScriptError
@@ -106,6 +116,44 @@ nonisolated final class RunningPipelinesCommand: NSScriptCommand {
                 return nil
             }
             return store.pipelines.filter { runner.isRunning($0) }.map(\.name)
+        }
+    }
+}
+
+@objc(AirPlayStatusCommand)
+nonisolated final class AirPlayStatusCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        MainActor.assumeIsolated {
+            guard let service = airPlayService(reportingTo: self) else {
+                return nil
+            }
+            return [service.isRunning, service.relayEnabled, service.isReceivingAudio]
+        }
+    }
+}
+
+@objc(StartAirPlayRelayCommand)
+nonisolated final class StartAirPlayRelayCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        MainActor.assumeIsolated {
+            guard let service = airPlayService(reportingTo: self) else {
+                return nil
+            }
+            service.remoteEnableRelay()
+            return nil
+        }
+    }
+}
+
+@objc(StopAirPlayRelayCommand)
+nonisolated final class StopAirPlayRelayCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        MainActor.assumeIsolated {
+            guard let service = airPlayService(reportingTo: self) else {
+                return nil
+            }
+            service.remoteDisableRelay()
+            return nil
         }
     }
 }
