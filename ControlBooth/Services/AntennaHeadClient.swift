@@ -26,6 +26,12 @@ import SharedLogging
 ///                             show ControlBooth as not running (e.g. on its
 ///                             ControlBooth Remote Control web page) without
 ///                             waiting on `NSRunningApplication` to notice.
+///   'NpUp'  now playing       direct parameter: display text (e.g. "Artist —
+///                             Title"), or empty to clear. No reply expected —
+///                             pushed by the AirPlay receiver whenever
+///                             shairport-sync's metadata pipe reports a track
+///                             change; AntennaHead ignores it unless the
+///                             AirPlay receiver is its active source.
 ///
 /// Sending waits synchronously for the reply (with a timeout), so call from
 /// user-action contexts, not tight loops. The first send triggers macOS's
@@ -117,6 +123,15 @@ nonisolated enum AntennaHeadClient {
         guard antennaHeadIsRunning else { return }
         _ = try? send(eventID: "Stop", directParameter: NSAppleEventDescriptor(string: name),
                       waitForReply: false)
+    }
+
+    /// Pushes the current AirPlay track (or clears it, if `text` is empty) to
+    /// AntennaHead's Now Playing display. Best-effort and non-blocking, like
+    /// `announcePipelineStopped` — a missed update just means the display
+    /// stays stale until the next track change or the source stops.
+    static func announceNowPlaying(_ text: String) {
+        guard antennaHeadIsRunning else { return }
+        _ = try? send(eventID: "NpUp", directParameter: NSAppleEventDescriptor(string: text), waitForReply: false)
     }
 
     /// Tells AntennaHead ControlBooth is about to quit. Best-effort and

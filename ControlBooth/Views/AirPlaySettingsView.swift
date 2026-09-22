@@ -1,4 +1,5 @@
 import SwiftUI
+import AirPlayReceiver
 
 /// The three modes `AirPlaySettings.enabled`/`relayEnabled` combine into —
 /// see `AirPlayReceiverService`'s type doc comment for why they're split.
@@ -62,6 +63,9 @@ struct AirPlaySettingsView: View {
                 if service.isRunning {
                     LabeledContent("Audio", value: service.isReceivingAudio ? "Receiving audio" : "Idle — no AirPlay client connected")
                     LabeledContent("Relay to AntennaHead", value: service.relayEnabled ? "On" : "Off")
+                    if let track = service.nowPlayingTrack, track.title != nil || track.artist != nil {
+                        LabeledContent("Now Playing", value: [track.artist, track.title].compactMap { $0 }.joined(separator: " — "))
+                    }
                 }
                 if let lastError = service.lastError {
                     Text("\(lastError)")

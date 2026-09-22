@@ -31,8 +31,13 @@ final class AirPlayReceiverService {
     /// Name announced to AntennaHead over the AppleEvents control channel
     /// (see AntennaHeadClient) — fixed rather than derived from the AirPlay
     /// device name, since it identifies this standalone receiver's bridge to
-    /// AntennaHead, not the AirPlay-visible speaker name.
-    private static let antennaHeadTaskName = "ControlBooth AirPlay Receiver"
+    /// AntennaHead, not the AirPlay-visible speaker name. Deliberately
+    /// doesn't repeat "ControlBooth": AntennaHead's own status text is always
+    /// "ControlBooth: <this name>" (see SDRController.startControlBoothListening),
+    /// so a value of "ControlBooth AirPlay Receiver" here would render as the
+    /// redundant "ControlBooth: ControlBooth AirPlay Receiver". Must match
+    /// AntennaHeadHTTPServer.controlBoothAirPlaySourceName exactly.
+    private static let antennaHeadTaskName = "AirPlay Receiver"
 
     private struct AppliedIdentity: Equatable {
         let deviceName: String
@@ -64,11 +69,15 @@ final class AirPlayReceiverService {
     var lastError: Error? { controller.lastError }
     var isReceivingAudio: Bool { controller.isReceivingAudio }
     var relayEnabled: Bool { controller.relayEnabled }
+    var nowPlayingTrack: AirPlayReceiverController.NowPlayingTrack? { controller.nowPlayingTrack }
 
     init() {
         controller = AirPlayReceiverController(configuration: AirPlayReceiverService.makeConfiguration(from: .fallback()))
         controller.onLog = { source, message in
             LogStore.shared.log(.info, source: source, message)
+        }
+        controller.onNowPlayingChange = { [weak self] track in
+            self?.pushNowPlaying(track)
         }
     }
 
@@ -105,6 +114,7 @@ final class AirPlayReceiverService {
         ensureRunning(settings: settings)
         announcedToAntennaHead = true
         controller.setRelayEnabled(true)
+        pushNowPlaying(controller.nowPlayingTrack)
     }
 
     /// AntennaHead's Remote Control page stopping the relay — leaves the
@@ -186,6 +196,13 @@ final class AirPlayReceiverService {
             }
             self.announcedToAntennaHead = shouldAnnounce
             self.controller.setRelayEnabled(true)
+            // A track may already have been playing before relay turned on
+            // (onNowPlayingChange won't fire again for it now that nothing's
+            // changed) — push whatever's current so AntennaHead doesn't wait
+            // for the *next* track change to show it.
+            if shouldAnnounce {
+                self.pushNowPlaying(self.controller.nowPlayingTrack)
+            }
         }
     }
 
@@ -203,6 +220,28 @@ final class AirPlayReceiverService {
         let taskName = Self.antennaHeadTaskName
         Task.detached(priority: .utility) {
             AntennaHeadClient.announcePipelineStopped(taskName)
+        }
+    }
+
+    /// Pushes (or clears) the current track to AntennaHead's Now Playing
+    /// display — only while it's actually listening to this source. No
+    /// separate "clear" is needed when relay/the receiver stops entirely:
+    /// `announceStopIfNeeded`'s 'Stop' event already makes AntennaHead switch
+    /// away from this source altogether.
+    private func pushNowPlaying(_ track: AirPlayReceiverController.NowPlayingTrack?) {
+        guard announcedToAntennaHead else { return }
+        let text = Self.displayText(for: track)
+        Task.detached(priority: .utility) {
+            AntennaHeadClient.announceNowPlaying(text)
+        }
+    }
+
+    private static func displayText(for track: AirPlayReceiverController.NowPlayingTrack?) -> String {
+        switch (track?.artist, track?.title) {
+        case let (artist?, title?): return "\(artist) — \(title)"
+        case let (artist?, nil): return artist
+        case let (nil, title?): return title
+        case (nil, nil): return ""
         }
     }
 
