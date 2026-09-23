@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import PipelineRunner
+import SDRDeviceAccess
 import SharedLogging
 
 /// Runs Pipeline records as chains of helper processes. Each running pipeline
@@ -17,6 +18,8 @@ final class PipelineRunner {
         case senderMissing
         case recorderMissing
         case toolMissing(String)
+        /// A stage's RTL-SDR is busy or missing (see `RTLSDRPreflight`).
+        case deviceUnavailable(RTLSDRPreflightReport)
 
         var description: String {
             switch self {
@@ -32,6 +35,8 @@ final class PipelineRunner {
                 return "LiveAudioRecorder is missing from Contents/Helpers — add it to the Copy Files build phase (see SETUP.md)."
             case .toolMissing(let path):
                 return "Tool not found or not executable: \(path)"
+            case .deviceUnavailable(let report):
+                return report.message
             }
         }
     }
@@ -76,6 +81,13 @@ final class PipelineRunner {
     /// click during that wait can't start the pipeline twice.
     private var startsInFlight: Set<Int64> = []
 
+    /// Set when a start was refused because Gqrx holds the pipeline's RTL-SDR
+    /// and can be asked to release it: the pipeline and its `-d` value, for
+    /// the error alert's "Release from Gqrx and Start" button
+    /// (`releaseGqrxAndStart()`), which shows only while the alert displays
+    /// this refusal's `message`. Cleared by any successful start.
+    private(set) var gqrxReleaseOffer: (pipeline: Pipeline, device: String, message: String)?
+
     /// The Play buttons' entry point: tells AntennaHead the pipeline is
     /// starting (so it opens its receiver and shows the pipeline name on its
     /// Remote Control view), *then* starts it. Only for UI-initiated starts.
@@ -87,16 +99,26 @@ final class PipelineRunner {
     /// another host isn't AntennaHead's to listen to.
     func startAnnouncingToAntennaHead(_ pipeline: Pipeline) async throws {
         guard let id = pipeline.id, !startsInFlight.contains(id) else { return }
-        if Self.isLoopback(pipeline.destinationHost) {
+        let announced = Self.isLoopback(pipeline.destinationHost)
+        let name = pipeline.name
+        if announced {
             startsInFlight.insert(id)
             defer { startsInFlight.remove(id) }
-            let name = pipeline.name
             // Off the main thread: the send blocks until AntennaHead replies.
             await Task.detached(priority: .userInitiated) {
                 AntennaHeadClient.announcePipelineStarting(name)
             }.value
         }
-        try start(pipeline)
+        do {
+            try start(pipeline)
+        } catch {
+            // AntennaHead opened its receiver for a pipeline that isn't
+            // coming (e.g. its RTL-SDR is busy): send it back to its filler.
+            if announced {
+                Task.detached(priority: .utility) { AntennaHeadClient.announcePipelineStopped(name) }
+            }
+            throw error
+        }
     }
 
     /// The Stop buttons' entry point: stops the pipeline, then tells AntennaHead
@@ -154,6 +176,21 @@ final class PipelineRunner {
         let stages = pipeline.stages
         guard !stages.isEmpty else {
             throw RunnerError.noStages(pipeline.name)
+        }
+
+        // Check each RTL-SDR the stages will open is actually free, after any
+        // pipeline stopped above has released its hardware. A busy or missing
+        // dongle fails the start with the likely holder named, instead of a
+        // pipeline whose rtl stage dies (or, with an older librtlsdr, runs on
+        // silently with no device).
+        for device in Self.rtlsdrDevices(in: stages) {
+            let report = RTLSDRPreflight.check(device: device, backend: LibRTLSDRBackend())
+            guard report.isAvailable else {
+                gqrxReleaseOffer = report.gqrxCanRelease ? (pipeline, device, report.message) : nil
+                LogStore.shared.log(.error, source: "PipelineRunner",
+                                    "'\(pipeline.name)': \(report.message)")
+                throw RunnerError.deviceUnavailable(report)
+            }
         }
 
         let finalStagePath: String
@@ -218,6 +255,7 @@ final class PipelineRunner {
 
         try manager.start()
         managers[id] = manager
+        gqrxReleaseOffer = nil
         if case .udpToAntennaHead = output {
             startedDestinations[id] = (pipeline.name, pipeline.destinationHost, pipeline.destinationPort)
         }
@@ -240,6 +278,54 @@ final class PipelineRunner {
         }
         managers.removeAll()
         startedDestinations.removeAll()
+    }
+
+    /// The error alert's "Release from Gqrx and Start": asks Gqrx to release
+    /// the dongle the refused pipeline needs (`U INPUT 0` — stopping Gqrx's
+    /// DSP isn't enough, the device stays claimed), then starts the pipeline.
+    /// Gqrx takes the device back with `U INPUT 1` (AntennaHead's Listen to
+    /// Gqrx does that).
+    func releaseGqrxAndStart() async throws {
+        guard let offer = gqrxReleaseOffer else { return }
+        gqrxReleaseOffer = nil
+        let device = offer.device
+        let report = await Task.detached(priority: .userInitiated) {
+            RTLSDRPreflight.releaseFromGqrxAndRecheck(device: device, backend: LibRTLSDRBackend())
+        }.value
+        guard report.isAvailable else { throw RunnerError.deviceUnavailable(report) }
+        try await startAnnouncingToAntennaHead(offer.pipeline)
+    }
+
+    /// librtlsdr-based tools a stage can run, by executable name.
+    static let rtlsdrTools: Set<String> = [
+        "rtl_fm_localradio", "rtl_fm", "rtl_sdr", "rtl_tcp", "rtl_power",
+        "rtl_adsb", "rtl_433", "rtl_test", "nrsc5",
+    ]
+
+    /// The RTL-SDR device values (`-d`, or index 0 when absent) the stages
+    /// will open, in order, without duplicates. Skips stages that don't open
+    /// a local dongle: nrsc5 reading from rtl_tcp (`-H`) or a file (`-r`), and
+    /// rtl_433's non-RTL SoapySDR device strings (`-d driver=…`).
+    static func rtlsdrDevices(in stages: [PipelineStage]) -> [String] {
+        var devices: [String] = []
+        for stage in stages {
+            let tool = (stage.path as NSString).lastPathComponent
+            guard rtlsdrTools.contains(tool) else { continue }
+            let args = stage.arguments
+            if tool == "nrsc5", args.contains("-H") || args.contains("-r") { continue }
+            var device = "0"
+            if let i = args.firstIndex(of: "-d"), i + 1 < args.count {
+                device = args[i + 1]
+            } else if let attached = args.first(where: { $0.hasPrefix("-d") && $0.count > 2 }) {
+                device = String(attached.dropFirst(2))   // getopt's "-d1" form
+            }
+            if tool == "rtl_433" {
+                if device.contains("=") { continue }
+                if device.hasPrefix(":") { device.removeFirst() }   // ":serial"
+            }
+            if !devices.contains(device) { devices.append(device) }
+        }
+        return devices
     }
 
     /// Bare tool names resolve to the app bundle's Contents/Helpers directory;

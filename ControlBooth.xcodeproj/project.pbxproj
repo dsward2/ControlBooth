@@ -12,6 +12,8 @@
 		0E2AEE3330106E75007F4143 /* PCMUDPSender in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEBB012FFAC00000BA711A /* PCMUDPSender */; };
 		0EAEB9B42FF9865E00BA711A /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEB9B32FF9865E00BA711A /* GRDB */; };
 		0EAEB9E12FFAA29A00BA711A /* PipelineRunner in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEB9E02FFAA29A00BA711A /* PipelineRunner */; };
+		0EDA7B012FFB000000C0FFEE /* SDRDeviceAccess in Frameworks */ = {isa = PBXBuildFile; productRef = 0EDA7B022FFB000000C0FFEE /* SDRDeviceAccess */; };
+		0EDA7B032FFB000000C0FFEE /* librtlsdr.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 122003304CD5476295D4A901 /* librtlsdr.framework */; };
 		0EAEBB022FFAC00000BA711A /* PCMUDPSender in CopyFiles */ = {isa = PBXBuildFile; productRef = 0EAEBB012FFAC00000BA711A /* PCMUDPSender */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		0EAEBC032FFAD00000BA711A /* AirPlayReceiver in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEBC022FFAD00000BA711A /* AirPlayReceiver */; };
 		10352754EA18CC5C69347D77 /* AudioInputCapture in CopyFiles */ = {isa = PBXBuildFile; productRef = B43A6DCA67C7CB4EC12E5AFE /* AudioInputCapture */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
@@ -144,6 +146,8 @@
 			files = (
 				0E2AEE3330106E75007F4143 /* PCMUDPSender in Frameworks */,
 				0EAEB9E12FFAA29A00BA711A /* PipelineRunner in Frameworks */,
+				0EDA7B012FFB000000C0FFEE /* SDRDeviceAccess in Frameworks */,
+				0EDA7B032FFB000000C0FFEE /* librtlsdr.framework in Frameworks */,
 				0EAEB9B42FF9865E00BA711A /* GRDB in Frameworks */,
 				0EAEBC032FFAD00000BA711A /* AirPlayReceiver in Frameworks */,
 				5F5D5331CBCE13CD8A221237 /* SharedLogging in Frameworks */,
@@ -262,6 +266,7 @@
 			packageProductDependencies = (
 				0EAEB9B32FF9865E00BA711A /* GRDB */,
 				0EAEB9E02FFAA29A00BA711A /* PipelineRunner */,
+				0EDA7B022FFB000000C0FFEE /* SDRDeviceAccess */,
 				0EAEBB012FFAC00000BA711A /* PCMUDPSender */,
 				0EAEBC022FFAD00000BA711A /* AirPlayReceiver */,
 				A578DEEA8DE804E207930937 /* SharedLogging */,
@@ -728,6 +733,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = ControlBooth;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = ControlBooth.entitlements;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/librtlsdr.xcframework/macos-arm64",
+				);
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -761,6 +770,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = ControlBooth;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = ControlBooth.entitlements;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/librtlsdr.xcframework/macos-arm64",
+				);
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -791,6 +804,10 @@
 		0EAEB9732FF95D2700BA711A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/librtlsdr.xcframework/macos-arm64",
+				);
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -812,6 +829,10 @@
 		0EAEB9742FF95D2700BA711A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/librtlsdr.xcframework/macos-arm64",
+				);
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -1042,6 +1063,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */;
 			productName = PipelineRunner;
+		};
+		0EDA7B022FFB000000C0FFEE /* SDRDeviceAccess */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */;
+			productName = SDRDeviceAccess;
 		};
 		0EAEBB012FFAC00000BA711A /* PCMUDPSender */ = {
 			isa = XCSwiftPackageProductDependency;
