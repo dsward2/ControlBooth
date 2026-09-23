@@ -20,6 +20,8 @@ final class PipelineRunner {
         case toolMissing(String)
         /// A stage's RTL-SDR is busy or missing (see `RTLSDRPreflight`).
         case deviceUnavailable(RTLSDRPreflightReport)
+        /// "Quit Gqrx and Start" couldn't get Gqrx to quit.
+        case gqrxDidNotQuit(String)
 
         var description: String {
             switch self {
@@ -37,6 +39,8 @@ final class PipelineRunner {
                 return "Tool not found or not executable: \(path)"
             case .deviceUnavailable(let report):
                 return report.message
+            case .gqrxDidNotQuit(let why):
+                return why
             }
         }
     }
@@ -81,12 +85,11 @@ final class PipelineRunner {
     /// click during that wait can't start the pipeline twice.
     private var startsInFlight: Set<Int64> = []
 
-    /// Set when a start was refused because Gqrx holds the pipeline's RTL-SDR
-    /// and can be asked to release it: the pipeline and its `-d` value, for
-    /// the error alert's "Release from Gqrx and Start" button
-    /// (`releaseGqrxAndStart()`), which shows only while the alert displays
-    /// this refusal's `message`. Cleared by any successful start.
-    private(set) var gqrxReleaseOffer: (pipeline: Pipeline, device: String, message: String)?
+    /// Set when a start was refused because Gqrx holds the pipeline's RTL-SDR:
+    /// the pipeline and its `-d` value, for the error alert's "Quit Gqrx and
+    /// Start" button (`quitGqrxAndStart()`), which shows only while the alert
+    /// displays this refusal's `message`. Cleared by any successful start.
+    private(set) var gqrxQuitOffer: (pipeline: Pipeline, device: String, message: String)?
 
     /// The Play buttons' entry point: tells AntennaHead the pipeline is
     /// starting (so it opens its receiver and shows the pipeline name on its
@@ -186,7 +189,7 @@ final class PipelineRunner {
         for device in Self.rtlsdrDevices(in: stages) {
             let report = RTLSDRPreflight.check(device: device, backend: LibRTLSDRBackend())
             guard report.isAvailable else {
-                gqrxReleaseOffer = report.gqrxCanRelease ? (pipeline, device, report.message) : nil
+                gqrxQuitOffer = report.gqrxIsHolder ? (pipeline, device, report.message) : nil
                 LogStore.shared.log(.error, source: "PipelineRunner",
                                     "'\(pipeline.name)': \(report.message)")
                 throw RunnerError.deviceUnavailable(report)
@@ -255,7 +258,7 @@ final class PipelineRunner {
 
         try manager.start()
         managers[id] = manager
-        gqrxReleaseOffer = nil
+        gqrxQuitOffer = nil
         if case .udpToAntennaHead = output {
             startedDestinations[id] = (pipeline.name, pipeline.destinationHost, pipeline.destinationPort)
         }
@@ -280,18 +283,20 @@ final class PipelineRunner {
         startedDestinations.removeAll()
     }
 
-    /// The error alert's "Release from Gqrx and Start": asks Gqrx to release
-    /// the dongle the refused pipeline needs (`U INPUT 0` — stopping Gqrx's
-    /// DSP isn't enough, the device stays claimed), then starts the pipeline.
-    /// Gqrx takes the device back with `U INPUT 1` (AntennaHead's Listen to
-    /// Gqrx does that).
-    func releaseGqrxAndStart() async throws {
-        guard let offer = gqrxReleaseOffer else { return }
-        gqrxReleaseOffer = nil
+    /// The error alert's "Quit Gqrx and Start": quits Gqrx — a normal quit,
+    /// never a kill — which holds the dongle the refused pipeline needs
+    /// (stopping Gqrx's DSP isn't enough: it keeps the device open from
+    /// launch), then starts the pipeline.
+    func quitGqrxAndStart() async throws {
+        guard let offer = gqrxQuitOffer else { return }
+        gqrxQuitOffer = nil
         let device = offer.device
-        let report = await Task.detached(priority: .userInitiated) {
-            RTLSDRPreflight.releaseFromGqrxAndRecheck(device: device, backend: LibRTLSDRBackend())
+        let (quit, report) = await Task.detached(priority: .userInitiated) {
+            RTLSDRPreflight.quitGqrxAndRecheck(device: device, backend: LibRTLSDRBackend())
         }.value
+        if case .failed(let why) = quit, !report.isAvailable {
+            throw RunnerError.gqrxDidNotQuit(why)
+        }
         guard report.isAvailable else { throw RunnerError.deviceUnavailable(report) }
         try await startAnnouncingToAntennaHead(offer.pipeline)
     }

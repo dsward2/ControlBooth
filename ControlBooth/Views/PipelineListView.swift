@@ -32,9 +32,9 @@ struct PipelineListView: View {
         }
         .alert("Pipeline Error", isPresented: errorPresented) {
             // Gqrx holds the pipeline's RTL-SDR: stopping its DSP wouldn't
-            // free it, but Gqrx can be asked to release it.
-            if let offer = runner.gqrxReleaseOffer, offer.message == errorMessage {
-                Button("Release from Gqrx and Start") { releaseGqrxAndStart() }
+            // free it, but quitting Gqrx does.
+            if let offer = runner.gqrxQuitOffer, offer.message == errorMessage {
+                Button("Quit Gqrx and Start") { quitGqrxAndStart() }
             }
             Button("OK", role: .cancel) {}
         } message: {
@@ -42,10 +42,10 @@ struct PipelineListView: View {
         }
     }
 
-    private func releaseGqrxAndStart() {
+    private func quitGqrxAndStart() {
         Task {
             do {
-                try await runner.releaseGqrxAndStart()
+                try await runner.quitGqrxAndStart()
             } catch {
                 errorMessage = "\(error)"
             }
