@@ -128,9 +128,24 @@ struct PipelineEditorView: View {
             }
         }
         .alert("Pipeline Error", isPresented: errorPresented) {
+            // Gqrx holds the pipeline's RTL-SDR: stopping its DSP wouldn't
+            // free it, but quitting Gqrx does.
+            if let offer = runner.gqrxQuitOffer, offer.message == errorMessage {
+                Button("Quit Gqrx and Start") { quitGqrxAndStart() }
+            }
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage ?? "")
+        }
+    }
+
+    private func quitGqrxAndStart() {
+        Task {
+            do {
+                try await runner.quitGqrxAndStart()
+            } catch {
+                errorMessage = "\(error)"
+            }
         }
     }
 
