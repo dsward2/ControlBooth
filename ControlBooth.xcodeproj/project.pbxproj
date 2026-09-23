@@ -733,6 +733,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = ControlBooth;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = ControlBooth.entitlements;
+				EXCLUDED_ARCHS = x86_64;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)/librtlsdr.xcframework/macos-arm64",
@@ -770,6 +771,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = ControlBooth;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = ControlBooth.entitlements;
+				EXCLUDED_ARCHS = x86_64;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)/librtlsdr.xcframework/macos-arm64",
@@ -804,6 +806,7 @@
 		0EAEB9732FF95D2700BA711A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				EXCLUDED_ARCHS = x86_64;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)/librtlsdr.xcframework/macos-arm64",
@@ -829,6 +832,7 @@
 		0EAEB9742FF95D2700BA711A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				EXCLUDED_ARCHS = x86_64;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)/librtlsdr.xcframework/macos-arm64",
