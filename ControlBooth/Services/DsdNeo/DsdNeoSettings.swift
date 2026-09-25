@@ -66,11 +66,20 @@ nonisolated struct DsdNeoScannerSettings: Codable, Equatable {
     var audioPort: Int = 23480
     /// Anything else to pass to dsd-neo, one argument per element.
     var extraArguments: [String] = []
+    /// The network dsd-neo last reported on this control channel
+    /// ("BEE00-188"), filled in by the scanner. Optional so settings saved
+    /// before it existed still decode.
+    var systemID: String?
 
     var isConfigured: Bool { controlChannelHz > 0 && !rtlSerial.isEmpty }
 
-    /// A key naming the system, for per-system state such as the ledger.
-    var systemKey: String { "cc-\(controlChannelHz)" }
+    /// A key naming the system, for per-system state (talkgroup history,
+    /// overrides, sites): the network identity once known, so every site of
+    /// a system shares it; the control channel until then.
+    var systemKey: String {
+        if let systemID, !systemID.isEmpty { return "sys-\(systemID)" }
+        return "cc-\(controlChannelHz)"
+    }
 
     static let defaultsKey = "dsdNeoScanner.settings"
 

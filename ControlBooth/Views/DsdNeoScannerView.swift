@@ -16,7 +16,20 @@ struct DsdNeoScannerView: View {
     @State private var devices: [String] = []
     @State private var installation = DsdNeoInstallation.detect()
     @State private var errorMessage: String?
+    @State private var infoMessage: String?
     @State private var busy = false
+    @State private var pane: Pane = .terminal
+    /// The talkgroup list in the settings, and the saved per-system state,
+    /// for the Talkgroups and Sites views while the scanner isn't running.
+    @State private var groupList = DsdNeoGroupList()
+    @State private var savedState = DsdNeoScanner.savedState(for: DsdNeoScannerSettings.load())
+
+    private enum Pane: String, CaseIterable, Identifiable {
+        case terminal = "Terminal"
+        case talkgroups = "Talkgroups"
+        case sites = "Sites"
+        var id: String { rawValue }
+    }
 
     private var scanner: DsdNeoScanner { runner.dsdNeoScanner }
 
@@ -29,7 +42,12 @@ struct DsdNeoScannerView: View {
         return runner.isRunning(pipeline) && scanner.isActive
     }
 
-    private var hasChanges: Bool { editedSettings != saved }
+    private var hasChanges: Bool {
+        var a = editedSettings, b = saved
+        a.systemID = nil
+        b.systemID = nil
+        return a != b
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -38,8 +56,21 @@ struct DsdNeoScannerView: View {
             HSplitView {
                 settingsForm
                     .frame(minWidth: 300, idealWidth: 340, maxWidth: 420)
-                terminalPane
-                    .frame(minWidth: 480)
+                VStack(spacing: 0) {
+                    Picker("View", selection: $pane) {
+                        ForEach(Pane.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .fixedSize()
+                    .padding(6)
+                    switch pane {
+                    case .terminal: terminalPane
+                    case .talkgroups: talkgroupsPane
+                    case .sites: sitesPane
+                    }
+                }
+                .frame(minWidth: 480)
             }
         }
         .navigationTitle("dsd-neo Scanner")
@@ -48,12 +79,22 @@ struct DsdNeoScannerView: View {
                 ? DsdNeoScannerSettings.megahertz(draft.controlChannelHz).dropLast().description : ""
             extraArgumentsText = draft.extraArguments.joined(separator: " ")
             refreshDevices()
+            reloadGroupList()
+            savedState = DsdNeoScanner.savedState(for: DsdNeoScannerSettings.load())
         }
+        .onChange(of: draft.groupListPath) { reloadGroupList() }
+        .onChange(of: scanner.isActive) { savedState = DsdNeoScanner.savedState(for: DsdNeoScannerSettings.load()) }
         .alert("dsd-neo Scanner", isPresented: Binding(get: { errorMessage != nil },
                                                         set: { if !$0 { errorMessage = nil } })) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage ?? "")
+        }
+        .alert("Talkgroup List", isPresented: Binding(get: { infoMessage != nil },
+                                                       set: { if !$0 { infoMessage = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(infoMessage ?? "")
         }
     }
 
@@ -131,6 +172,10 @@ struct DsdNeoScannerView: View {
     private var editedSettings: DsdNeoScannerSettings {
         var settings = draft
         settings.controlChannelHz = Self.hertz(fromMegahertz: controlChannelMHz) ?? 0
+        // The scanner fills in the network it finds; keep it unless the
+        // control channel changed (then it's found again).
+        let stored = DsdNeoScannerSettings.load()
+        settings.systemID = stored.controlChannelHz == settings.controlChannelHz ? stored.systemID : nil
         settings.extraArguments = extraArgumentsText.split(whereSeparator: \.isWhitespace).map(String.init)
         return settings
     }
@@ -149,7 +194,8 @@ struct DsdNeoScannerView: View {
                             .lineLimit(1).truncationMode(.middle)
                             .foregroundStyle(draft.groupListPath.isEmpty ? .secondary : .primary)
                             .help(draft.groupListPath)
-                        Button("Choose…") { chooseGroupList() }
+                        Button("Import…") { importGroupList() }
+                            .help("Choose an OP25 TSV, RadioReference CSV, SDRTrunk playlist or dsd-neo CSV.")
                         if !draft.groupListPath.isEmpty {
                             Button("Clear") { draft.groupListPath = "" }
                         }
@@ -261,6 +307,98 @@ struct DsdNeoScannerView: View {
         .background(Color.black)
     }
 
+    // MARK: Talkgroups and Sites
+
+    private var talkgroupsPane: some View {
+        let running = scanner.isActive
+        let ledger = running ? scanner.ledger : savedState.ledger
+        let overrides = running ? scanner.overrides : savedState.overrides
+        return DsdNeoTalkgroupsView(
+            rows: DsdNeoTalkgroupRow.rows(list: groupList, ledger: ledger, overrides: overrides,
+                                          encryptionLockout: saved.encryptionLockout),
+            lockoutChangesPending: scanner.lockoutChangesPending,
+            isRunning: isRunning,
+            onRename: { tg, name in updateOverrides { $0.setName(name, for: tg) } },
+            onPolicy: { tg, policy in updateOverrides { $0.setPolicy(policy, for: tg) } },
+            onRestart: { restartScanner() })
+    }
+
+    private var sitesPane: some View {
+        DsdNeoSitesView(table: scanner.isActive ? scanner.sites : savedState.sites,
+                        currentControlChannelHz: editedSettings.controlChannelHz,
+                        onUse: { hz in
+                            controlChannelMHz = String(DsdNeoScannerSettings.megahertz(hz).dropLast())
+                        })
+    }
+
+    private func updateOverrides(_ change: (inout DsdNeoTalkgroupOverrides) -> Void) {
+        let current = DsdNeoScannerSettings.load()
+        var overrides = scanner.isActive ? scanner.overrides : DsdNeoScanner.savedState(for: current).overrides
+        change(&overrides)
+        scanner.saveOverrides(overrides, for: current)
+        savedState = DsdNeoScanner.savedState(for: current)
+    }
+
+    private func restartScanner() {
+        do {
+            try runner.applyDsdNeoSettings(DsdNeoScannerSettings.load())
+        } catch {
+            errorMessage = "\(error)"
+        }
+    }
+
+    private func reloadGroupList() {
+        let path = (draft.groupListPath as NSString).expandingTildeInPath
+        guard !path.isEmpty, let text = Self.readText(URL(fileURLWithPath: path)) else {
+            groupList = DsdNeoGroupList()
+            return
+        }
+        groupList = DsdNeoGroupList(csv: text)
+    }
+
+    /// Imports a talkgroup list. A dsd-neo CSV is used where it is; other
+    /// formats are converted into ControlBooth's dsd-neo folder.
+    private func importGroupList() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.message = "Choose a talkgroup list: OP25 TSV, RadioReference CSV, SDRTrunk playlist, or dsd-neo CSV."
+        panel.prompt = "Import"
+        if !draft.groupListPath.isEmpty {
+            panel.directoryURL = URL(fileURLWithPath: draft.groupListPath).deletingLastPathComponent()
+        }
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        guard let text = Self.readText(url) else {
+            errorMessage = "Couldn't read \(url.lastPathComponent)."
+            return
+        }
+        do {
+            let result = try DsdNeoTalkgroupImport.convert(text)
+            var path = url.path
+            if result.format != .dsdNeo {
+                let folder = DsdNeoScanner.directory.appendingPathComponent("lists", isDirectory: true)
+                try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                let destination = folder.appendingPathComponent(url.deletingPathExtension().lastPathComponent + ".csv")
+                try result.list.csvText.write(to: destination, atomically: true, encoding: .utf8)
+                path = destination.path
+            }
+            draft.groupListPath = path
+            var message = "Imported \(result.list.rows.count) talkgroups from \(url.lastPathComponent) (\(result.format.rawValue))."
+            if result.skipped > 0 { message += " \(result.skipped) entries couldn't be read." }
+            message += isRunning ? " Click Save & Apply to use it." : " Click Save to use it."
+            infoMessage = message
+        } catch {
+            errorMessage = "\(error)"
+        }
+    }
+
+    /// UTF-8, falling back to Latin-1 (older Windows exports).
+    static func readText(_ url: URL) -> String? {
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        return String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1)
+    }
+
     // MARK: Actions
 
     private func start() {
@@ -327,22 +465,6 @@ struct DsdNeoScannerView: View {
         } catch {
             errorMessage = "Could not add the dsd-neo Scanner pipeline: \(error)"
             return nil
-        }
-    }
-
-    private func chooseGroupList() {
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = true
-        panel.canChooseDirectories = false
-        panel.allowsMultipleSelection = false
-        panel.allowedContentTypes = [.commaSeparatedText, .plainText]
-        panel.message = "Choose a dsd-neo talkgroup list (CSV: DEC,Mode,Name,…)."
-        panel.prompt = "Choose"
-        if !draft.groupListPath.isEmpty {
-            panel.directoryURL = URL(fileURLWithPath: draft.groupListPath).deletingLastPathComponent()
-        }
-        if panel.runModal() == .OK, let url = panel.url {
-            draft.groupListPath = url.path
         }
     }
 
