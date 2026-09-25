@@ -60,6 +60,13 @@ nonisolated enum KnownExternalTools {
             insertionPath: "/usr/bin/nc"
         ),
         KnownExternalTool(
+            name: PipelineRunner.dsdNeoScannerTool,
+            summary: "dsd-neo P25 trunk scanner, run with the dsd-neo Scanner settings (must be the "
+                + "first stage). Any arguments here are passed to dsd-neo. Emits 48 kHz stereo, "
+                + "with silence between calls.",
+            hasDocSection: false
+        ),
+        KnownExternalTool(
             name: "nrsc5",
             summary: "HD Radio (NRSC-5) decoder — not bundled. Run it yourself and bridge in via "
                 + "PCMUDPReceiver; its output is 44100 Hz stereo, so add a sox stage after.",

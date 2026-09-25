@@ -22,6 +22,8 @@ final class PipelineRunner {
         case deviceUnavailable(RTLSDRPreflightReport)
         /// "Quit Gqrx and Start" couldn't get Gqrx to quit.
         case gqrxDidNotQuit(String)
+        /// The pipeline has a `dsd-neo-scanner` stage but dsd-neo can't run.
+        case dsdNeoUnavailable(String)
 
         var description: String {
             switch self {
@@ -40,6 +42,8 @@ final class PipelineRunner {
             case .deviceUnavailable(let report):
                 return report.message
             case .gqrxDidNotQuit(let why):
+                return why
+            case .dsdNeoUnavailable(let why):
                 return why
             }
         }
@@ -62,6 +66,10 @@ final class PipelineRunner {
     }
 
     private(set) var managers: [Int64: TaskPipelineManager] = [:]
+
+    /// dsd-neo, run for whichever pipeline has the `dsd-neo-scanner` stage
+    /// (one at a time: it owns one RTL-SDR and one audio port).
+    let dsdNeoScanner = DsdNeoScanner()
 
     /// Destination (host, port) each currently-started pipeline is sending
     /// to, keyed by pipeline id. Used only to catch two pipelines racing to
@@ -170,15 +178,27 @@ final class PipelineRunner {
                 guard let dest = startedDestinations[otherID],
                       dest.host == pipeline.destinationHost,
                       dest.port == pipeline.destinationPort else { continue }
+                if dsdNeoScanner.pipelineID == otherID { dsdNeoScanner.stop() }
                 otherManager.terminateAndWait()
                 managers[otherID] = nil
                 startedDestinations[otherID] = nil
             }
         }
 
-        let stages = pipeline.stages
+        var stages = pipeline.stages
         guard !stages.isEmpty else {
             throw RunnerError.noStages(pipeline.name)
+        }
+
+        // A dsd-neo-scanner stage is dsd-neo running beside the pipeline, not
+        // in it: its audio arrives over UDP, so the stage becomes the
+        // receiving end, normalized to 48 kHz stereo.
+        var scannerLaunch: (settings: DsdNeoScannerSettings, install: DsdNeoInstallation, index: UInt32)?
+        if let first = stages.first, Self.isDsdNeoScannerStage(first) {
+            scannerLaunch = try prepareDsdNeoScanner(for: pipeline)
+            scannerLaunch!.settings.extraArguments += first.arguments
+            stages = Self.dsdNeoScannerStages(audioPort: scannerLaunch!.settings.audioPort)
+                + stages.dropFirst()
         }
 
         // Check each RTL-SDR the stages will open is actually free, after any
@@ -271,6 +291,15 @@ final class PipelineRunner {
         try manager.start()
         managers[id] = manager
         gqrxQuitOffer = nil
+        if let scannerLaunch {
+            do {
+                try startDsdNeoScanner(scannerLaunch, pipeline: pipeline, id: id, output: output)
+            } catch {
+                manager.terminateAndWait()
+                managers[id] = nil
+                throw RunnerError.dsdNeoUnavailable("Could not start dsd-neo: \(error)")
+            }
+        }
         if case .udpToAntennaHead = output {
             startedDestinations[id] = (pipeline.name, pipeline.destinationHost, pipeline.destinationPort)
         }
@@ -282,12 +311,14 @@ final class PipelineRunner {
     /// hardware device or destination port the old pipeline held released.
     func stop(_ pipeline: Pipeline) {
         guard let id = pipeline.id, let manager = managers[id] else { return }
+        if dsdNeoScanner.pipelineID == id { dsdNeoScanner.stop() }
         manager.terminateAndWait()
         managers[id] = nil
         startedDestinations[id] = nil
     }
 
     func stopAll() {
+        dsdNeoScanner.stop()
         for manager in managers.values {
             manager.terminateAndWait()
         }
@@ -311,6 +342,89 @@ final class PipelineRunner {
         }
         guard report.isAvailable else { throw RunnerError.deviceUnavailable(report) }
         try await startAnnouncingToAntennaHead(offer.pipeline)
+    }
+
+    // MARK: dsd-neo scanner
+
+    /// Stage path standing for dsd-neo run by `DsdNeoScanner` with the
+    /// dsd-neo Scanner settings. Must be a pipeline's first stage.
+    nonisolated static let dsdNeoScannerTool = "dsd-neo-scanner"
+
+    nonisolated static func isDsdNeoScannerStage(_ stage: PipelineStage) -> Bool {
+        stage.path == dsdNeoScannerTool
+    }
+
+    /// What a `dsd-neo-scanner` stage runs as: dsd-neo's decoded voice (8 kHz
+    /// stereo, only during calls) received as a continuous stream with
+    /// silence between calls, then resampled to the 48 kHz stereo contract.
+    nonisolated static func dsdNeoScannerStages(audioPort: Int) -> [PipelineStage] {
+        [
+            PipelineStage(path: "PCMUDPReceiver",
+                          arguments: ["--port", String(audioPort), "--fill-silence",
+                                      "--rate", "8000", "--channels", "2", "--exit-with-parent"]),
+            PipelineStage(path: "sox",
+                          arguments: ["-V2", "-q", "--buffer", "640",
+                                      "-r", "8000", "-e", "signed-integer", "-b", "16", "-c", "2", "-t", "raw", "-",
+                                      "-e", "signed-integer", "-b", "16", "-c", "2", "-t", "raw", "-",
+                                      "rate", "48000"]),
+        ]
+    }
+
+    /// Checks dsd-neo is installed, runnable and configured, and that its
+    /// RTL-SDR is free. Returns what `startDsdNeoScanner` needs.
+    private func prepareDsdNeoScanner(for pipeline: Pipeline) throws
+        -> (settings: DsdNeoScannerSettings, install: DsdNeoInstallation, index: UInt32)
+    {
+        guard let install = DsdNeoInstallation.detect() else {
+            throw RunnerError.dsdNeoUnavailable(
+                "dsd-neo isn't installed. Install the dsd-neo macOS portable build as "
+                + "\(DsdNeoInstallation.standardRoot.path).")
+        }
+        guard !install.isQuarantined else {
+            throw RunnerError.dsdNeoUnavailable(
+                "macOS is blocking dsd-neo because it was downloaded from the internet. "
+                + "Clear the quarantine flag in Terminal, then start again:\n\(install.quarantineFixCommand)")
+        }
+        let settings = DsdNeoScannerSettings.load()
+        guard settings.isConfigured else {
+            throw RunnerError.dsdNeoUnavailable(
+                "The dsd-neo Scanner needs an RTL-SDR serial number and a control channel frequency.")
+        }
+        if dsdNeoScanner.isActive, dsdNeoScanner.pipelineID != pipeline.id {
+            throw RunnerError.dsdNeoUnavailable("The dsd-neo Scanner is already running for another pipeline.")
+        }
+        dsdNeoScanner.stop()
+        DsdNeoScanner.killOrphans()
+        let report = RTLSDRPreflight.check(device: settings.rtlSerial, backend: LibRTLSDRBackend())
+        guard report.isAvailable, let index = report.index else {
+            gqrxQuitOffer = report.gqrxIsHolder ? (pipeline, settings.rtlSerial, report.message) : nil
+            LogStore.shared.log(.error, source: "PipelineRunner", "'\(pipeline.name)': \(report.message)")
+            throw RunnerError.deviceUnavailable(report)
+        }
+        return (settings, install, index)
+    }
+
+    private func startDsdNeoScanner(_ launch: (settings: DsdNeoScannerSettings, install: DsdNeoInstallation, index: UInt32),
+                                    pipeline: Pipeline, id: Int64, output: PipelineOutput) throws {
+        let name = pipeline.name
+        var announces = false
+        if case .udpToAntennaHead = output { announces = Self.isLoopback(pipeline.destinationHost) }
+        dsdNeoScanner.onNowPlaying = { text in
+            guard announces else { return }
+            Task.detached(priority: .utility) { AntennaHeadClient.announceNowPlaying(text, pipeline: name) }
+        }
+        dsdNeoScanner.onFatal = { [weak self] _ in
+            guard let self, let manager = self.managers[id] else { return }
+            manager.terminateAndWait()
+            self.managers[id] = nil
+            self.startedDestinations[id] = nil
+            if announces {
+                Task.detached(priority: .utility) { AntennaHeadClient.announcePipelineStopped(name) }
+            }
+        }
+        try dsdNeoScanner.start(settings: launch.settings, installation: launch.install,
+                                rtlIndex: launch.index, pipelineID: id,
+                                ownerAlive: { [weak self] in self?.managers[id]?.status == .running })
     }
 
     /// Stderr line prefix a stage uses to report now-playing text (e.g. the

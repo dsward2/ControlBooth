@@ -30,6 +30,10 @@ struct ControlBoothApp: App {
                     appDelegate.runner = runner
                     appDelegate.store = store
                     appDelegate.airPlayReceiverService = airPlayReceiverService
+                    // Not when hosting unit tests: that would write to the real database.
+                    if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
+                        store.seedDsdNeoScannerPipelineIfNeeded()
+                    }
                     scheduler.reschedule(events: eventStore.events, pipelineStore: store, runner: runner)
                     airPlayReceiverService.setSettingsStore(airPlaySettingsStore)
                     airPlayReceiverService.applySettings(airPlaySettingsStore.settings)
