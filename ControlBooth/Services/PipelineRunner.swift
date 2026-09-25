@@ -213,8 +213,20 @@ final class PipelineRunner {
         }
 
         let manager = TaskPipelineManager()
+        let sendsToAntennaHead: Bool
+        if case .udpToAntennaHead = output { sendsToAntennaHead = true } else { sendsToAntennaHead = false }
+        let pipelineName = pipeline.name
         manager.onLog = { source, message in
             LogStore.shared.log(.info, source: source, message)
+            // A stage can drive AntennaHead's Now Playing text by writing
+            // "NOWPLAYING<tab>text" to stderr (empty text clears it).
+            if sendsToAntennaHead, message.hasPrefix(Self.nowPlayingMarker) {
+                let text = String(message.dropFirst(Self.nowPlayingMarker.count))
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                Task.detached(priority: .utility) {
+                    AntennaHeadClient.announceNowPlaying(text, pipeline: pipelineName)
+                }
+            }
         }
         for stage in stages {
             let toolPath = Self.resolveToolPath(stage.path)
@@ -300,6 +312,11 @@ final class PipelineRunner {
         guard report.isAvailable else { throw RunnerError.deviceUnavailable(report) }
         try await startAnnouncingToAntennaHead(offer.pipeline)
     }
+
+    /// Stderr line prefix a stage uses to report now-playing text (e.g. the
+    /// talkgroup a scanner just tuned), forwarded to AntennaHead's Now Playing
+    /// display while this pipeline is its source.
+    nonisolated static let nowPlayingMarker = "NOWPLAYING\t"
 
     /// librtlsdr-based tools a stage can run, by executable name.
     static let rtlsdrTools: Set<String> = [

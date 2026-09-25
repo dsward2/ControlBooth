@@ -32,6 +32,12 @@ import SharedLogging
 ///                             shairport-sync's metadata pipe reports a track
 ///                             change; AntennaHead ignores it unless the
 ///                             AirPlay receiver is its active source.
+///                             optional 'Srce' parameter (string): the
+///                             pipeline the text belongs to — sent when a
+///                             pipeline stage reports it (see
+///                             `PipelineRunner.nowPlayingMarker`); AntennaHead
+///                             then applies it only while that pipeline is
+///                             its active source.
 ///
 /// Sending waits synchronously for the reply (with a timeout), so call from
 /// user-action contexts, not tight loops. The first send triggers macOS's
@@ -129,9 +135,17 @@ nonisolated enum AntennaHeadClient {
     /// AntennaHead's Now Playing display. Best-effort and non-blocking, like
     /// `announcePipelineStopped` — a missed update just means the display
     /// stays stale until the next track change or the source stops.
-    static func announceNowPlaying(_ text: String) {
+    ///
+    /// `pipeline` names the pipeline the text belongs to (a stage reporting its
+    /// own now-playing text); `nil` is the AirPlay receiver.
+    static func announceNowPlaying(_ text: String, pipeline: String? = nil) {
         guard antennaHeadIsRunning else { return }
-        _ = try? send(eventID: "NpUp", directParameter: NSAppleEventDescriptor(string: text), waitForReply: false)
+        var extraParams: [FourCharCode: NSAppleEventDescriptor] = [:]
+        if let pipeline {
+            extraParams[keyNowPlayingSource] = NSAppleEventDescriptor(string: pipeline)
+        }
+        _ = try? send(eventID: "NpUp", directParameter: NSAppleEventDescriptor(string: text),
+                      extraParams: extraParams, waitForReply: false)
     }
 
     /// Tells AntennaHead ControlBooth is about to quit. Best-effort and
@@ -200,4 +214,5 @@ nonisolated enum AntennaHeadClient {
     private static let keyErrorNumber = fourCC("errn")
     private static let keyErrorString = fourCC("errs")
     private static let keyUseToneFiller = fourCC("Tone")
+    private static let keyNowPlayingSource = fourCC("Srce")
 }
