@@ -36,6 +36,10 @@ struct DsdNeoLogParserTests {
                 == .selectedDevice(index: 1, serial: "00000180"))
     }
 
+    @Test func phase2SyncCountsAsSignal() {
+        #expect(DsdNeoLogParser.parse("13:26:28 Sync: +P25p2 WACN: BEE00; SYS: 188; NAC/CC: 18C;") == .p25Sync)
+    }
+
     @Test func colorCodesAreIgnored() {
         #expect(DsdNeoLogParser.parse("\u{1B}[0m20:24:31 Sync: +P25p1 \u{1B}[36mWACN: BEE00;\u{1B}[0m LDU1")
                 == .p25Sync)
@@ -162,6 +166,24 @@ struct DsdNeoWatchdogTests {
             results.append(watchdog.observe(.p25Sync))
         }
         #expect(results.allSatisfy { $0 == nil })
+    }
+
+    @Test func silenceIsAReasonToRestart() {
+        let launch = Date()
+        var watchdog = DsdNeoWatchdog(now: launch)
+        let early = watchdog.checkSilence(at: launch.addingTimeInterval(DsdNeoWatchdog.silenceLimit - 1))
+        let late = watchdog.checkSilence(at: launch.addingTimeInterval(DsdNeoWatchdog.silenceLimit + 1))
+        #expect(early == nil)
+        #expect(late == .noSignal(seconds: Int(DsdNeoWatchdog.silenceLimit)))
+
+        // A sync restarts the silence clock.
+        _ = watchdog.observe(.p25Sync, at: launch.addingTimeInterval(50))
+        let afterSync = watchdog.checkSilence(at: launch.addingTimeInterval(DsdNeoWatchdog.silenceLimit + 1))
+        #expect(afterSync == nil)
+        // Other events don't.
+        _ = watchdog.observe(.tunedToGrant, at: launch.addingTimeInterval(100))
+        let stillSilent = watchdog.checkSilence(at: launch.addingTimeInterval(50 + DsdNeoWatchdog.silenceLimit + 1))
+        #expect(stillSilent != nil)
     }
 
     @Test func restartBudgetGivesUpThenRecovers() {

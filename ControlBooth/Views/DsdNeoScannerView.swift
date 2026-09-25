@@ -65,7 +65,7 @@ struct DsdNeoScannerView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(statusTitle).font(.headline)
                 if let detail = statusDetail {
-                    Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                    Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(3)
                 }
             }
             Spacer()
