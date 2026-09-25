@@ -28,6 +28,30 @@ final class PipelineStore {
         }
     }
 
+    static let dsdNeoScannerPipelineName = "dsd-neo Scanner"
+    private static let dsdNeoScannerSeededKey = "dsdNeoScanner.pipelineSeeded"
+
+    /// Adds the "dsd-neo Scanner" pipeline — a single `dsd-neo-scanner` stage —
+    /// the first time dsd-neo is found installed, so AntennaHead can list it
+    /// like any other pipeline. Only once: a user who deletes it keeps it
+    /// deleted.
+    func seedDsdNeoScannerPipelineIfNeeded(defaults: UserDefaults = .standard,
+                                           installed: Bool = DsdNeoInstallation.detect() != nil) {
+        guard installed, !defaults.bool(forKey: Self.dsdNeoScannerSeededKey) else { return }
+        defaults.set(true, forKey: Self.dsdNeoScannerSeededKey)
+        let exists = pipelines.contains { $0.stages.first.map(PipelineRunner.isDsdNeoScannerStage) == true }
+        guard !exists else { return }
+        var pipeline = Pipeline.prototype(name: Self.dsdNeoScannerPipelineName,
+                                          sortOrder: (pipelines.map(\.sortOrder).max() ?? -1) + 1)
+        pipeline.stages = [PipelineStage(path: PipelineRunner.dsdNeoScannerTool)]
+        do {
+            try save(pipeline)
+            LogStore.shared.log(.info, source: "PipelineStore", "added the \(Self.dsdNeoScannerPipelineName) pipeline")
+        } catch {
+            LogStore.shared.log(.error, source: "PipelineStore", "could not add the dsd-neo Scanner pipeline: \(error)")
+        }
+    }
+
     func pipeline(withID id: Int64) -> Pipeline? {
         pipelines.first { $0.id == id }
     }
