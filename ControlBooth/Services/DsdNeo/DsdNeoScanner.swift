@@ -54,6 +54,10 @@ final class DsdNeoScanner {
     @ObservationIgnored private var run: RunContext?
     @ObservationIgnored private var watchdog = DsdNeoWatchdog()
     @ObservationIgnored private var budget = DsdNeoRestartBudget()
+    /// Restarts since dsd-neo last synced a P25 frame. Restarting can't fix a
+    /// wedged RTL-SDR or a dead antenna, so after a few it gives up.
+    @ObservationIgnored private var restartsWithoutSignal = 0
+    static let maxRestartsWithoutSignal = 3
     @ObservationIgnored private var pendingGrant: (talkgroup: Int, encrypted: Bool)?
     @ObservationIgnored private var ledger = DsdNeoTalkgroupLedger()
     @ObservationIgnored private var names: [Int: String] = [:]
@@ -111,6 +115,7 @@ final class DsdNeoScanner {
         restartCount = 0
         lastRestartReason = nil
         budget = DsdNeoRestartBudget()
+        restartsWithoutSignal = 0
         nowPlayingTalkgroup = nil
         nowPlayingText = nil
         terminalBacklog.removeAll()
@@ -169,6 +174,7 @@ final class DsdNeoScanner {
         run.rtlIndex = rtlIndex
         self.run = run
         budget = DsdNeoRestartBudget()
+        restartsWithoutSignal = 0
         restartCount = 0
         lastRestartReason = nil
         nowPlayingTalkgroup = nil
@@ -222,7 +228,7 @@ final class DsdNeoScanner {
 
     private func launch() throws {
         guard let run else { return }
-        watchdog = DsdNeoWatchdog()
+        watchdog = DsdNeoWatchdog(now: Date())
         pendingGrant = nil
 
         // dsd-neo reads the group list once at startup, so each (re)launch
@@ -301,6 +307,8 @@ final class DsdNeoScanner {
             if let grant = pendingGrant, !grant.encrypted { reportTalkgroup(grant.talkgroup) }
         case .voiceUser(let tg, let encrypted):
             if !encrypted, tg > 0 { reportTalkgroup(tg) }
+        case .p25Sync:
+            restartsWithoutSignal = 0
         case .selectedDevice(let index, let serial):
             if let run, !run.settings.rtlSerial.isEmpty, serial != run.settings.rtlSerial {
                 fail("dsd-neo opened USB device #\(index) (serial \(serial)), not \(run.settings.rtlSerial).")
@@ -333,6 +341,14 @@ final class DsdNeoScanner {
 
     private func restart(because reason: String) {
         guard run != nil else { return }
+        guard restartsWithoutSignal < Self.maxRestartsWithoutSignal else {
+            let device = run.map { $0.settings.rtlSerial.isEmpty ? "" : " (\($0.settings.rtlSerial))" } ?? ""
+            fail("dsd-neo has had no P25 signal through \(Self.maxRestartsWithoutSignal) restarts. "
+                 + "The RTL-SDR\(device) may have stopped delivering samples: unplug it, plug it back in, "
+                 + "and start the scanner again. If that doesn't help, check the antenna and the control "
+                 + "channel frequency.")
+            return
+        }
         guard budget.allowRestart(at: Date()) else {
             fail("dsd-neo kept failing (\(reason)); gave up after \(DsdNeoRestartBudget.maxRestarts) restarts "
                  + "in \(Int(DsdNeoRestartBudget.window)) seconds.")
@@ -340,7 +356,10 @@ final class DsdNeoScanner {
         }
         LogStore.shared.log(.warning, source: "DsdNeoScanner", "restarting dsd-neo: \(reason)")
         restartCount += 1
+        restartsWithoutSignal += 1
         lastRestartReason = reason
+        nowPlayingTalkgroup = nil
+        nowPlayingText = nil
         state = .restarting(reason)
         generation += 1
         process?.terminateAndWait()
@@ -373,6 +392,10 @@ final class DsdNeoScanner {
         if !run.ownerAlive() {
             LogStore.shared.log(.info, source: "DsdNeoScanner", "pipeline stopped; stopping dsd-neo")
             stop()
+            return
+        }
+        if case .running = state, let reason = watchdog.checkSilence(at: Date()) {
+            restart(because: reason.description)
             return
         }
         readEventLog()

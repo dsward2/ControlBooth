@@ -15,7 +15,8 @@ nonisolated enum DsdNeoLogEvent: Equatable {
     case retune(hertz: Int)
     /// The P25 state machine lost the control channel.
     case controlChannelLost
-    /// A P25 Phase 1 frame synced — the receiver is decoding something.
+    /// A P25 Phase 1 or Phase 2 frame synced — the receiver is decoding
+    /// something. The scanner's sign of life.
     case p25Sync
     /// The RTL-SDR dsd-neo actually opened.
     case selectedDevice(index: Int, serial: String)
@@ -42,7 +43,7 @@ nonisolated enum DsdNeoLogParser {
         // Each loss prints "[P25 SM] ON_CC -> HUNT (cc-lost)" then
         // "[P25 SM] cc-lost"; count only the second so one loss is one event.
         if line.trimmingCharacters(in: .whitespaces) == "[P25 SM] cc-lost" { return .controlChannelLost }
-        if line.contains("Sync: +P25p1") { return .p25Sync }
+        if line.contains("Sync: +P25p1") || line.contains("Sync: +P25p2") { return .p25Sync }
         if let m = firstMatch(grant, line), let svc = Int(m[1], radix: 16), let tg = Int(m[2]) {
             return .grant(talkgroup: tg, encrypted: svc & 0x40 != 0)
         }
