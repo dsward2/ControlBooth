@@ -45,7 +45,7 @@ struct ContentView: View {
 
             AirPlaySettingsView(settings: airPlaySettingsStore.settings)
                 .id(airPlaySettingsStore.settings)
-                .tabItem { Label("AirPlay", systemImage: "airplayaudio") }
+                .tabItem { Label("AirPlay Receiver", systemImage: "airplayaudio") }
         }
         .frame(minWidth: 880, minHeight: 560)
     }
