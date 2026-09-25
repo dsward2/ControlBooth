@@ -418,6 +418,13 @@ final class PipelineRunner {
             guard announces else { return }
             Task.detached(priority: .utility) { AntennaHeadClient.announceNowPlaying(text, pipeline: name) }
         }
+        dsdNeoScanner.onSystemIdentified = { id in
+            // Remember the network for the control channel it was found on.
+            var saved = DsdNeoScannerSettings.load()
+            guard saved.controlChannelHz == launch.settings.controlChannelHz else { return }
+            saved.systemID = id
+            saved.save()
+        }
         dsdNeoScanner.onFatal = { [weak self] _ in
             guard let self, let manager = self.managers[id] else { return }
             manager.terminateAndWait()

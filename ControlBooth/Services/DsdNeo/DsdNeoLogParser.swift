@@ -20,6 +20,20 @@ nonisolated enum DsdNeoLogEvent: Equatable {
     case p25Sync
     /// The RTL-SDR dsd-neo actually opened.
     case selectedDevice(index: Int, serial: String)
+    /// The monitored site's own RFSS Status Broadcast (system ID in hex).
+    case homeSite(system: String, rfss: Int, site: Int, channel: Int)
+    /// An Adjacent Site Status Broadcast naming a neighbouring site.
+    case adjacentSite(system: String, rfss: Int, site: Int, channel: Int)
+    /// dsd-neo's channel map resolved a channel number to a frequency.
+    case channelFrequency(channel: Int, hertz: Int)
+}
+
+/// The network a P25 sync line reports ("WACN: BEE00; SYS: 188; …").
+nonisolated struct DsdNeoNetworkID: Equatable {
+    var wacn: String
+    var system: String
+    /// "BEE00-188"
+    var id: String { "\(wacn)-\(system)" }
 }
 
 nonisolated enum DsdNeoLogParser {
@@ -36,6 +50,18 @@ nonisolated enum DsdNeoLogParser {
     private static let selected = try! NSRegularExpression(
         pattern: #"Selected Device #(\d+) with Serial Number: (\S+)"#)
     private static let ansi = try! NSRegularExpression(pattern: "\u{1B}\\[[0-9;]*m")
+    // "  LRA [00] SYSID [188] RFSS ID [002] SITE ID [038] CHAN [015D] SSC [70]"
+    private static let homeSite = try! NSRegularExpression(
+        pattern: #"SYSID \[([0-9A-Fa-f]+)\] RFSS ID \[(\d+)\] SITE ID \[(\d+)\] CHAN \[([0-9A-Fa-f]+)\]"#)
+    // "Adjacent Site Status Broadcast - LRA 00 SYS 188 RFSS 1 Site 75 CH 01D7 SSC 70"
+    private static let adjacentSite = try! NSRegularExpression(
+        pattern: #"Adjacent Site Status Broadcast - LRA \w+ SYS ([0-9A-Fa-f]+) RFSS (\d+) Site (\d+) CH ([0-9A-Fa-f]+)"#)
+    // "P25 FREQ: map ch=0x01D7 -> 853.950000 MHz"
+    // "P25 FREQ: iden=0 type=1 ch=0x009B -> 851.975000 MHz (base5=…)"
+    private static let channelFrequency = try! NSRegularExpression(
+        pattern: #"P25 FREQ: (?:map|iden=\d+ type=\d+) ch=0x([0-9A-Fa-f]+) -> ([0-9.]+) MHz"#)
+    // "Sync: +P25p1 WACN: BEE00; SYS: 188; NAC/CC: 18C; RFSS: 002; Site: 038;"
+    private static let network = try! NSRegularExpression(pattern: #"WACN: ([0-9A-Fa-f]+); SYS: ([0-9A-Fa-f]+);"#)
 
     static func parse(_ rawLine: String) -> DsdNeoLogEvent? {
         let line = stripANSI(rawLine)
@@ -56,7 +82,27 @@ nonisolated enum DsdNeoLogParser {
         if let m = firstMatch(selected, line), let index = Int(m[1]) {
             return .selectedDevice(index: index, serial: m[2])
         }
+        if line.contains("P25 FREQ:"), let m = firstMatch(channelFrequency, line),
+           let channel = Int(m[1], radix: 16), let mhz = Double(m[2]) {
+            return .channelFrequency(channel: channel, hertz: Int((mhz * 1_000_000).rounded()))
+        }
+        if line.contains("Adjacent Site"), let m = firstMatch(adjacentSite, line),
+           let rfss = Int(m[2]), let site = Int(m[3]), let channel = Int(m[4], radix: 16) {
+            return .adjacentSite(system: m[1].uppercased(), rfss: rfss, site: site, channel: channel)
+        }
+        if line.contains("SYSID ["), let m = firstMatch(homeSite, line),
+           let rfss = Int(m[2]), let site = Int(m[3]), let channel = Int(m[4], radix: 16) {
+            return .homeSite(system: m[1].uppercased(), rfss: rfss, site: site, channel: channel)
+        }
         return nil
+    }
+
+    /// The network named by a P25 sync line, if it names one.
+    static func networkID(in rawLine: String) -> DsdNeoNetworkID? {
+        guard rawLine.contains("WACN: ") else { return nil }
+        let line = stripANSI(rawLine)
+        guard let m = firstMatch(network, line) else { return nil }
+        return DsdNeoNetworkID(wacn: m[1].uppercased(), system: m[2].uppercased())
     }
 
     static func stripANSI(_ line: String) -> String {

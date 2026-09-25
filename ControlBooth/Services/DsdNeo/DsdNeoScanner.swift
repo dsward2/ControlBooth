@@ -30,6 +30,16 @@ final class DsdNeoScanner {
     private(set) var restartCount = 0
     private(set) var lastRestartReason: String?
     private(set) var lockedOutTalkgroups: Set<Int> = []
+    /// This system's call history, overrides and sites while running — the
+    /// dsd-neo Scanner tab's Talkgroups and Sites views read these live.
+    private(set) var ledger = DsdNeoTalkgroupLedger()
+    private(set) var overrides = DsdNeoTalkgroupOverrides()
+    private(set) var sites = DsdNeoSiteTable()
+    /// Talkgroup names from the list and the overrides.
+    private(set) var names: [Int: String] = [:]
+    /// Lockout overrides changed since dsd-neo started; they take effect
+    /// when it next starts (dsd-neo reads its group list only at startup).
+    private(set) var lockoutChangesPending = false
 
     var isActive: Bool {
         switch state {
@@ -49,6 +59,9 @@ final class DsdNeoScanner {
     @ObservationIgnored var onNowPlaying: ((String) -> Void)?
     /// Called when the scanner gives up; the pipeline should be stopped.
     @ObservationIgnored var onFatal: ((String) -> Void)?
+    /// Called with "BEE00-188" when dsd-neo reports the network, so the
+    /// settings can remember it (see `DsdNeoScannerSettings.systemID`).
+    @ObservationIgnored var onSystemIdentified: ((String) -> Void)?
 
     @ObservationIgnored private var process: PseudoTerminalProcess?
     @ObservationIgnored private var run: RunContext?
@@ -59,8 +72,10 @@ final class DsdNeoScanner {
     @ObservationIgnored private var restartsWithoutSignal = 0
     static let maxRestartsWithoutSignal = 3
     @ObservationIgnored private var pendingGrant: (talkgroup: Int, encrypted: Bool)?
-    @ObservationIgnored private var ledger = DsdNeoTalkgroupLedger()
-    @ObservationIgnored private var names: [Int: String] = [:]
+    @ObservationIgnored private var listNames: [Int: String] = [:]
+    @ObservationIgnored private var sitesDirty = false
+    /// Set once the network dsd-neo reports matches the settings' systemID.
+    @ObservationIgnored private var networkConfirmed = false
     @ObservationIgnored private var eventLogOffset: UInt64 = 0
     @ObservationIgnored private var pollTimer: Timer?
     @ObservationIgnored private var stderrLog: FileHandle?
@@ -92,9 +107,6 @@ final class DsdNeoScanner {
     nonisolated static var eventLogURL: URL { directory.appendingPathComponent("events.log") }
     nonisolated static var stderrLogURL: URL { directory.appendingPathComponent("dsd-neo-stderr.log") }
     nonisolated static var effectiveGroupListURL: URL { directory.appendingPathComponent("groups-effective.csv") }
-    nonisolated static func ledgerURL(for settings: DsdNeoScannerSettings) -> URL {
-        directory.appendingPathComponent("talkgroups-\(settings.systemKey).json")
-    }
 
     // MARK: Start / stop
 
@@ -119,7 +131,7 @@ final class DsdNeoScanner {
         nowPlayingTalkgroup = nil
         nowPlayingText = nil
         terminalBacklog.removeAll()
-        loadLedger(for: settings)
+        loadSystemState(key: settings.systemKey)
         do {
             try launch()
         } catch {
@@ -141,6 +153,10 @@ final class DsdNeoScanner {
         process?.terminateAndWait()
         process = nil
         readEventLog()
+        if sitesDirty, let run {
+            sitesDirty = false
+            DsdNeoSystemFiles.save(sites, .sites, key: run.settings.systemKey)
+        }
         closeStderrLog()
         run = nil
         pipelineID = nil
@@ -179,7 +195,7 @@ final class DsdNeoScanner {
         lastRestartReason = nil
         nowPlayingTalkgroup = nil
         nowPlayingText = nil
-        loadLedger(for: settings)
+        loadSystemState(key: settings.systemKey)
         do {
             try launch()
         } catch {
@@ -193,14 +209,46 @@ final class DsdNeoScanner {
     /// Forgets which talkgroups carried encrypted calls on `settings`' system.
     /// Only while stopped: a running scanner would write its ledger back.
     static func forgetEncryptionHistory(for settings: DsdNeoScannerSettings) {
-        try? FileManager.default.removeItem(at: ledgerURL(for: settings))
+        try? FileManager.default.removeItem(at: DsdNeoSystemFiles.url(.talkgroups, key: settings.systemKey))
     }
 
     /// Talkgroups the saved ledger would lock out on `settings`' system.
     static func savedLockouts(for settings: DsdNeoScannerSettings) -> Set<Int> {
-        guard let data = try? Data(contentsOf: ledgerURL(for: settings)),
-              let ledger = try? JSONDecoder().decode(DsdNeoTalkgroupLedger.self, from: data) else { return [] }
-        return ledger.lockedOut
+        let key = settings.systemKey
+        let ledger = DsdNeoSystemFiles.load(DsdNeoTalkgroupLedger.self, .talkgroups, key: key) ?? .init()
+        let overrides = DsdNeoSystemFiles.load(DsdNeoTalkgroupOverrides.self, .overrides, key: key) ?? .init()
+        return ledger.lockedOut.subtracting(overrides.alwaysAllowed)
+    }
+
+    /// Saved state for `settings`' system, for the tab while not running.
+    static func savedState(for settings: DsdNeoScannerSettings)
+        -> (ledger: DsdNeoTalkgroupLedger, overrides: DsdNeoTalkgroupOverrides, sites: DsdNeoSiteTable)
+    {
+        let key = settings.systemKey
+        return (DsdNeoSystemFiles.load(DsdNeoTalkgroupLedger.self, .talkgroups, key: key) ?? .init(),
+                DsdNeoSystemFiles.load(DsdNeoTalkgroupOverrides.self, .overrides, key: key) ?? .init(),
+                DsdNeoSystemFiles.load(DsdNeoSiteTable.self, .sites, key: key) ?? .init())
+    }
+
+    /// Saves overrides for `settings`' system. While running on that system
+    /// the scanner takes them too: names at once (Now Playing included),
+    /// lockout changes when dsd-neo next starts.
+    func saveOverrides(_ newOverrides: DsdNeoTalkgroupOverrides, for settings: DsdNeoScannerSettings) {
+        let key = run?.settings.systemKey ?? settings.systemKey
+        DsdNeoSystemFiles.save(newOverrides, .overrides, key: key)
+        guard run != nil else { return }
+        let lockoutsChanged = newOverrides.lockedOut != overrides.lockedOut
+            || newOverrides.alwaysAllowed != overrides.alwaysAllowed
+        overrides = newOverrides
+        if lockoutsChanged { lockoutChangesPending = true }
+        rebuildNames()
+        if let tg = nowPlayingTalkgroup {
+            let text = displayText(for: tg)
+            if text != nowPlayingText {
+                nowPlayingText = text
+                onNowPlaying?(text)
+            }
+        }
     }
 
     /// Keystrokes from an attached terminal view.
@@ -240,10 +288,13 @@ final class DsdNeoScanner {
                                   encoding: .utf8)
             groups = DsdNeoGroupList(csv: text)
         }
-        names = groups.displayNames
-        lockedOutTalkgroups = run.settings.encryptionLockout ? ledger.lockedOut : []
-        if !run.settings.groupListPath.isEmpty || !lockedOutTalkgroups.isEmpty {
-            let effective = groups.applyingLockout(lockedOutTalkgroups)
+        listNames = groups.displayNames
+        rebuildNames()
+        let encryptedLockouts = run.settings.encryptionLockout ? ledger.lockedOut : []
+        let effective = groups.applying(overrides, encryptedLockouts: encryptedLockouts)
+        lockedOutTalkgroups = encryptedLockouts.subtracting(overrides.alwaysAllowed).union(overrides.lockedOut)
+        lockoutChangesPending = false
+        if !effective.rows.isEmpty {
             try effective.csvText.write(to: Self.effectiveGroupListURL, atomically: true, encoding: .utf8)
             groupListPath = Self.effectiveGroupListURL.path
         }
@@ -309,6 +360,20 @@ final class DsdNeoScanner {
             if !encrypted, tg > 0 { reportTalkgroup(tg) }
         case .p25Sync:
             restartsWithoutSignal = 0
+            if !networkConfirmed, let network = DsdNeoLogParser.networkID(in: line) {
+                identify(network)
+            }
+        case .homeSite(let system, let rfss, let site, let channel):
+            sites.noteHome(system: system, rfss: rfss, site: site, channel: channel, at: Date())
+            sitesDirty = true
+        case .adjacentSite(let system, let rfss, let site, let channel):
+            sites.noteAdjacent(system: system, rfss: rfss, site: site, channel: channel, at: Date())
+            sitesDirty = true
+        case .channelFrequency(let channel, let hertz):
+            if sites.channelFrequencies[channel] != hertz {
+                sites.noteFrequency(channel: channel, hertz: hertz)
+                sitesDirty = true
+            }
         case .selectedDevice(let index, let serial):
             if let run, !run.settings.rtlSerial.isEmpty, serial != run.settings.rtlSerial {
                 fail("dsd-neo opened USB device #\(index) (serial \(serial)), not \(run.settings.rtlSerial).")
@@ -325,9 +390,35 @@ final class DsdNeoScanner {
     private func reportTalkgroup(_ tg: Int) {
         guard tg != nowPlayingTalkgroup else { return }
         nowPlayingTalkgroup = tg
-        let text = names[tg].map { "\($0) (TG \(tg))" } ?? "TG \(tg)"
+        let text = displayText(for: tg)
         nowPlayingText = text
         onNowPlaying?(text)
+    }
+
+    private func displayText(for tg: Int) -> String {
+        names[tg].map { "\($0) (TG \(tg))" } ?? "TG \(tg)"
+    }
+
+    private func rebuildNames() {
+        names = listNames.merging(overrides.names) { _, override in override }
+    }
+
+    /// dsd-neo reported the network. Remember it in the settings and move
+    /// this system's state to the network's key (see `DsdNeoSystemFiles`).
+    private func identify(_ network: DsdNeoNetworkID) {
+        guard var run else { return }
+        networkConfirmed = true
+        guard run.settings.systemID != network.id else { return }
+        let oldKey = run.settings.systemKey
+        saveSystemState(key: oldKey)
+        run.settings.systemID = network.id
+        self.run = run
+        let newKey = run.settings.systemKey
+        DsdNeoSystemFiles.adopt(from: oldKey, to: newKey)
+        loadSystemState(key: newKey)
+        networkConfirmed = true
+        LogStore.shared.log(.info, source: "DsdNeoScanner", "system identified as \(network.id)")
+        onSystemIdentified?(network.id)
     }
 
     private func processExited(status: Int32) {
@@ -399,6 +490,10 @@ final class DsdNeoScanner {
             return
         }
         readEventLog()
+        if sitesDirty {
+            sitesDirty = false
+            DsdNeoSystemFiles.save(sites, .sites, key: run.settings.systemKey)
+        }
         if let size = try? stderrLog?.offset(), size > Self.stderrLogLimit {
             try? stderrLog?.truncate(atOffset: 0)
         }
@@ -422,7 +517,7 @@ final class DsdNeoScanner {
         for line in String(decoding: complete, as: UTF8.self).split(whereSeparator: \.isNewline) {
             if let call = DsdNeoCallRecord(eventLogLine: String(line)) { ledger.record(call) }
         }
-        saveLedger(for: run.settings)
+        DsdNeoSystemFiles.save(ledger, .talkgroups, key: run.settings.systemKey)
         for tg in ledger.lockedOut.subtracting(before).sorted() {
             LogStore.shared.log(.info, source: "DsdNeoScanner",
                                 "talkgroup \(tg) \(names[tg].map { "(\($0)) " } ?? "")only carries encrypted calls; "
@@ -430,18 +525,19 @@ final class DsdNeoScanner {
         }
     }
 
-    private func loadLedger(for settings: DsdNeoScannerSettings) {
-        if let data = try? Data(contentsOf: Self.ledgerURL(for: settings)),
-           let saved = try? JSONDecoder().decode(DsdNeoTalkgroupLedger.self, from: data) {
-            ledger = saved
-        } else {
-            ledger = DsdNeoTalkgroupLedger()
-        }
+    private func loadSystemState(key: String) {
+        ledger = DsdNeoSystemFiles.load(DsdNeoTalkgroupLedger.self, .talkgroups, key: key) ?? .init()
+        overrides = DsdNeoSystemFiles.load(DsdNeoTalkgroupOverrides.self, .overrides, key: key) ?? .init()
+        sites = DsdNeoSystemFiles.load(DsdNeoSiteTable.self, .sites, key: key) ?? .init()
+        sitesDirty = false
+        networkConfirmed = false
+        rebuildNames()
     }
 
-    private func saveLedger(for settings: DsdNeoScannerSettings) {
-        guard let data = try? JSONEncoder().encode(ledger) else { return }
-        try? data.write(to: Self.ledgerURL(for: settings), options: .atomic)
+    private func saveSystemState(key: String) {
+        DsdNeoSystemFiles.save(ledger, .talkgroups, key: key)
+        DsdNeoSystemFiles.save(overrides, .overrides, key: key)
+        DsdNeoSystemFiles.save(sites, .sites, key: key)
     }
 
     private func openStderrLog() {

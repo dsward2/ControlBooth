@@ -101,7 +101,8 @@ struct DsdNeoTalkgroupTests {
         #expect(locked.rows.first { $0.talkgroup == 30147 }?.mode == "DE")
         #expect(locked.rows.first { $0.talkgroup == 3 }?.mode == "A")
         let added = locked.rows.first { $0.talkgroup == 29379 }
-        #expect(added?.fields == ["29379", "DE", "Encrypted TG 29379", "Encrypted"])
+        // The list has a FullName column, so added rows carry it (empty).
+        #expect(added?.fields == ["29379", "DE", "Encrypted TG 29379", "Encrypted", ""])
         // Everything else round-trips unchanged.
         let text = locked.csvText
         #expect(text.hasPrefix("DEC,Mode,Name,Tag,FullName"))
