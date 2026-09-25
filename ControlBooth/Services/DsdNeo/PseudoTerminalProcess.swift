@@ -57,7 +57,7 @@ nonisolated final class PseudoTerminalProcess: @unchecked Sendable {
         posix_spawn_file_actions_adddup2(&actions, slave, 0)
         posix_spawn_file_actions_adddup2(&actions, slave, 1)
         posix_spawn_file_actions_adddup2(&actions, errPipe[1], 2)
-        posix_spawn_file_actions_addchdir_np(&actions, workingDirectory.path)
+        posix_spawn_file_actions_addchdir(&actions, workingDirectory.path)
 
         var attributes: posix_spawnattr_t?
         posix_spawnattr_init(&attributes)

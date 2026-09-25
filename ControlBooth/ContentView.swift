@@ -46,6 +46,9 @@ struct ContentView: View {
             AirPlaySettingsView(settings: airPlaySettingsStore.settings)
                 .id(airPlaySettingsStore.settings)
                 .tabItem { Label("AirPlay Receiver", systemImage: "airplayaudio") }
+
+            DsdNeoScannerView()
+                .tabItem { Label("dsd-neo Scanner", systemImage: "antenna.radiowaves.left.and.right") }
         }
         .frame(minWidth: 880, minHeight: 560)
     }

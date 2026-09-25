@@ -246,3 +246,21 @@ struct DsdNeoPipelineStagesTests {
         #expect(buffer.flush() == nil)
     }
 }
+
+@MainActor
+struct DsdNeoScannerViewTests {
+
+    @Test func controlChannelFieldParsing() {
+        #expect(DsdNeoScannerView.hertz(fromMegahertz: "853.1875") == 853_187_500)
+        #expect(DsdNeoScannerView.hertz(fromMegahertz: " 853.1875 MHz ") == 853_187_500)
+        #expect(DsdNeoScannerView.hertz(fromMegahertz: "770.85625") == 770_856_250)
+        #expect(DsdNeoScannerView.hertz(fromMegahertz: "") == nil)
+        #expect(DsdNeoScannerView.hertz(fromMegahertz: "abc") == nil)
+        #expect(DsdNeoScannerView.hertz(fromMegahertz: "-5") == nil)
+    }
+
+    @Test func fieldShowsSavedFrequencyWithoutUnit() {
+        // The tab fills the MHz field from `megahertz(_:)` minus its "M".
+        #expect(DsdNeoScannerSettings.megahertz(853_187_500).dropLast() == "853.1875")
+    }
+}

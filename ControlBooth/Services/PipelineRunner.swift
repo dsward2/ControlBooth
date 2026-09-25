@@ -193,10 +193,10 @@ final class PipelineRunner {
         // A dsd-neo-scanner stage is dsd-neo running beside the pipeline, not
         // in it: its audio arrives over UDP, so the stage becomes the
         // receiving end, normalized to 48 kHz stereo.
-        var scannerLaunch: (settings: DsdNeoScannerSettings, install: DsdNeoInstallation, index: UInt32)?
+        var scannerLaunch: DsdNeoLaunch?
         if let first = stages.first, Self.isDsdNeoScannerStage(first) {
             scannerLaunch = try prepareDsdNeoScanner(for: pipeline)
-            scannerLaunch!.settings.extraArguments += first.arguments
+            scannerLaunch!.stageArguments = first.arguments
             stages = Self.dsdNeoScannerStages(audioPort: scannerLaunch!.settings.audioPort)
                 + stages.dropFirst()
         }
@@ -372,9 +372,14 @@ final class PipelineRunner {
 
     /// Checks dsd-neo is installed, runnable and configured, and that its
     /// RTL-SDR is free. Returns what `startDsdNeoScanner` needs.
-    private func prepareDsdNeoScanner(for pipeline: Pipeline) throws
-        -> (settings: DsdNeoScannerSettings, install: DsdNeoInstallation, index: UInt32)
-    {
+    private struct DsdNeoLaunch {
+        var settings: DsdNeoScannerSettings
+        var stageArguments: [String] = []
+        var install: DsdNeoInstallation
+        var index: UInt32
+    }
+
+    private func prepareDsdNeoScanner(for pipeline: Pipeline) throws -> DsdNeoLaunch {
         guard let install = DsdNeoInstallation.detect() else {
             throw RunnerError.dsdNeoUnavailable(
                 "dsd-neo isn't installed. Install the dsd-neo macOS portable build as "
@@ -401,10 +406,10 @@ final class PipelineRunner {
             LogStore.shared.log(.error, source: "PipelineRunner", "'\(pipeline.name)': \(report.message)")
             throw RunnerError.deviceUnavailable(report)
         }
-        return (settings, install, index)
+        return DsdNeoLaunch(settings: settings, install: install, index: index)
     }
 
-    private func startDsdNeoScanner(_ launch: (settings: DsdNeoScannerSettings, install: DsdNeoInstallation, index: UInt32),
+    private func startDsdNeoScanner(_ launch: DsdNeoLaunch,
                                     pipeline: Pipeline, id: Int64, output: PipelineOutput) throws {
         let name = pipeline.name
         var announces = false
@@ -422,9 +427,29 @@ final class PipelineRunner {
                 Task.detached(priority: .utility) { AntennaHeadClient.announcePipelineStopped(name) }
             }
         }
-        try dsdNeoScanner.start(settings: launch.settings, installation: launch.install,
+        try dsdNeoScanner.start(settings: launch.settings, stageArguments: launch.stageArguments,
+                                installation: launch.install,
                                 rtlIndex: launch.index, pipelineID: id,
                                 ownerAlive: { [weak self] in self?.managers[id]?.status == .running })
+    }
+
+    /// Saves `settings` and, if the scanner is running, relaunches dsd-neo
+    /// with them without stopping its pipeline (AntennaHead keeps playing).
+    /// A new audio port only takes effect when the pipeline is next started.
+    func applyDsdNeoSettings(_ settings: DsdNeoScannerSettings) throws {
+        settings.save()
+        guard dsdNeoScanner.isActive, dsdNeoScanner.runningSettings != nil else { return }
+        guard settings.isConfigured else {
+            throw RunnerError.dsdNeoUnavailable(
+                "The dsd-neo Scanner needs an RTL-SDR serial number and a control channel frequency.")
+        }
+        dsdNeoScanner.suspendForRelaunch()
+        let report = RTLSDRPreflight.check(device: settings.rtlSerial, backend: LibRTLSDRBackend())
+        guard report.isAvailable, let index = report.index else {
+            dsdNeoScanner.abandon(report.message)
+            throw RunnerError.deviceUnavailable(report)
+        }
+        dsdNeoScanner.relaunch(settings: settings, rtlIndex: index)
     }
 
     /// Stderr line prefix a stage uses to report now-playing text (e.g. the
