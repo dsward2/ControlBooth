@@ -75,7 +75,7 @@ struct AirPlaySettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .navigationTitle("AirPlay")
+        .navigationTitle("AirPlay Receiver")
         .toolbar {
             ToolbarItemGroup {
                 Button("Save") {
