@@ -30,15 +30,17 @@ struct ControlBoothApp: App {
                     appDelegate.runner = runner
                     appDelegate.store = store
                     appDelegate.airPlayReceiverService = airPlayReceiverService
-                    // Not when hosting unit tests: that would write to the real database.
-                    if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
-                        store.seedDsdNeoScannerPipelineIfNeeded()
-                    }
+                    // A copy hosting unit tests must leave the real app's world
+                    // alone: no database seeding, scheduled starts, or AirPlay
+                    // receiver competing for port 5000.
+                    guard !AppDelegate.isHostingUnitTests else { return }
+                    store.seedDsdNeoScannerPipelineIfNeeded()
                     scheduler.reschedule(events: eventStore.events, pipelineStore: store, runner: runner)
                     airPlayReceiverService.setSettingsStore(airPlaySettingsStore)
                     airPlayReceiverService.applySettings(airPlaySettingsStore.settings)
                 }
                 .onChange(of: eventStore.events) {
+                    guard !AppDelegate.isHostingUnitTests else { return }
                     scheduler.reschedule(events: eventStore.events, pipelineStore: store, runner: runner)
                 }
         }
@@ -121,7 +123,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AppDelegate.shared = self
     }
 
+    /// True when this process is the host app for unit tests (a second copy
+    /// running beside the real ControlBooth).
+    static let isHostingUnitTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+
     func applicationWillTerminate(_ notification: Notification) {
+        // The real ControlBooth is still running: telling AntennaHead this copy
+        // is quitting would make it drop the real one's pipeline.
+        guard !Self.isHostingUnitTests else { return }
         // Graceful teardown on normal quit; on a crash the helpers'
         // --exit-with-parent watchdogs collapse the pipelines instead.
         runner?.stopAll()

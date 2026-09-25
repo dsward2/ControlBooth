@@ -11,6 +11,7 @@
 		0DB533FFB7D9D2B75A6AB91F /* PCMJitterBuffer in CopyFiles */ = {isa = PBXBuildFile; productRef = 1AD803BDA4DC219FF701FB37 /* PCMJitterBuffer */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		0E2AEE3330106E75007F4143 /* PCMUDPSender in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEBB012FFAC00000BA711A /* PCMUDPSender */; };
 		0EAEB9B42FF9865E00BA711A /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEB9B32FF9865E00BA711A /* GRDB */; };
+		D5A7E0132FFB000000A1B2C1 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = D5A7E0122FFB000000A1B2C1 /* SwiftTerm */; };
 		0EAEB9E12FFAA29A00BA711A /* PipelineRunner in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEB9E02FFAA29A00BA711A /* PipelineRunner */; };
 		0EDA7B012FFB000000C0FFEE /* SDRDeviceAccess in Frameworks */ = {isa = PBXBuildFile; productRef = 0EDA7B022FFB000000C0FFEE /* SDRDeviceAccess */; };
 		0EDA7B032FFB000000C0FFEE /* librtlsdr.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 122003304CD5476295D4A901 /* librtlsdr.framework */; };
@@ -149,6 +150,7 @@
 				0EDA7B012FFB000000C0FFEE /* SDRDeviceAccess in Frameworks */,
 				0EDA7B032FFB000000C0FFEE /* librtlsdr.framework in Frameworks */,
 				0EAEB9B42FF9865E00BA711A /* GRDB in Frameworks */,
+				D5A7E0132FFB000000A1B2C1 /* SwiftTerm in Frameworks */,
 				0EAEBC032FFAD00000BA711A /* AirPlayReceiver in Frameworks */,
 				5F5D5331CBCE13CD8A221237 /* SharedLogging in Frameworks */,
 				1635675B4339037BAEBC13E9 /* AUProcessor in Frameworks */,
@@ -265,6 +267,7 @@
 			name = ControlBooth;
 			packageProductDependencies = (
 				0EAEB9B32FF9865E00BA711A /* GRDB */,
+				D5A7E0122FFB000000A1B2C1 /* SwiftTerm */,
 				0EAEB9E02FFAA29A00BA711A /* PipelineRunner */,
 				0EDA7B022FFB000000C0FFEE /* SDRDeviceAccess */,
 				0EAEBB012FFAC00000BA711A /* PCMUDPSender */,
@@ -387,6 +390,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				0EAEB9B22FF9865E00BA711A /* XCRemoteSwiftPackageReference "GRDB" */,
+				D5A7E0112FFB000000A1B2C1 /* XCRemoteSwiftPackageReference "SwiftTerm" */,
 				F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */,
 				0EAEBC012FFAD00000BA711A /* XCLocalSwiftPackageReference "../AirPlayReceiver" */,
 				F5FAD7DC4E894EF44C90EEB6 /* XCLocalSwiftPackageReference "../SharedLogging" */,
@@ -1050,6 +1054,14 @@
 				kind = branch;
 			};
 		};
+		D5A7E0112FFB000000A1B2C1 /* XCRemoteSwiftPackageReference "SwiftTerm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/migueldeicaza/SwiftTerm";
+			requirement = {
+				kind = exactVersion;
+				version = 1.18.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1062,6 +1074,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 0EAEB9B22FF9865E00BA711A /* XCRemoteSwiftPackageReference "GRDB" */;
 			productName = GRDB;
+		};
+		D5A7E0122FFB000000A1B2C1 /* SwiftTerm */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D5A7E0112FFB000000A1B2C1 /* XCRemoteSwiftPackageReference "SwiftTerm" */;
+			productName = SwiftTerm;
 		};
 		0EAEB9E02FFAA29A00BA711A /* PipelineRunner */ = {
 			isa = XCSwiftPackageProductDependency;

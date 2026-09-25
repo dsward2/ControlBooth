@@ -38,6 +38,9 @@ final class DsdNeoScanner {
         }
     }
 
+    /// The attached terminal view's size; each (re)launch starts dsd-neo's
+    /// pseudo-terminal at this size so its screens fit the view.
+    @ObservationIgnored private var terminalSize: (columns: UInt16, rows: UInt16) = (120, 40)
     /// Recent terminal output, replayed when a terminal view attaches.
     @ObservationIgnored private(set) var terminalBacklog = Data()
     /// Live terminal output for an attached view.
@@ -62,10 +65,15 @@ final class DsdNeoScanner {
 
     private struct RunContext {
         var settings: DsdNeoScannerSettings
+        /// The pipeline stage's own arguments, passed after the settings' extras.
+        var stageArguments: [String]
         var installation: DsdNeoInstallation
         var rtlIndex: UInt32
         var ownerAlive: () -> Bool
     }
+
+    /// The settings dsd-neo is running with, while active.
+    var runningSettings: DsdNeoScannerSettings? { run?.settings }
 
     static let terminalBacklogLimit = 256 * 1024
     static let stderrLogLimit: UInt64 = 50 * 1024 * 1024
@@ -90,6 +98,7 @@ final class DsdNeoScanner {
     /// caller). `ownerAlive` reports whether the pipeline carrying the audio
     /// is still running; the scanner stops itself when it isn't.
     func start(settings: DsdNeoScannerSettings,
+               stageArguments: [String] = [],
                installation: DsdNeoInstallation,
                rtlIndex: UInt32,
                pipelineID: Int64,
@@ -97,7 +106,8 @@ final class DsdNeoScanner {
         stop()
         try FileManager.default.createDirectory(at: Self.directory, withIntermediateDirectories: true)
         self.pipelineID = pipelineID
-        run = RunContext(settings: settings, installation: installation, rtlIndex: rtlIndex, ownerAlive: ownerAlive)
+        run = RunContext(settings: settings, stageArguments: stageArguments, installation: installation,
+                         rtlIndex: rtlIndex, ownerAlive: ownerAlive)
         restartCount = 0
         lastRestartReason = nil
         budget = DsdNeoRestartBudget()
@@ -134,10 +144,64 @@ final class DsdNeoScanner {
         state = .idle
     }
 
+    /// Stops dsd-neo but keeps the pipeline's run, so `relaunch` can bring it
+    /// back with new settings — e.g. on another RTL-SDR, once the caller has
+    /// checked that one is free.
+    func suspendForRelaunch() {
+        guard run != nil else { return }
+        generation += 1
+        process?.terminateAndWait()
+        process = nil
+        readEventLog()
+        closeStderrLog()
+        pendingGrant = nil
+        state = .restarting("applying new settings")
+    }
+
+    /// Relaunches dsd-neo, after `suspendForRelaunch`, with `settings` on USB
+    /// device `rtlIndex`. The audio port stays the one the pipeline was
+    /// started with. Failing here stops the pipeline (`onFatal`).
+    func relaunch(settings: DsdNeoScannerSettings, rtlIndex: UInt32) {
+        guard var run else { return }
+        var settings = settings
+        settings.audioPort = run.settings.audioPort
+        run.settings = settings
+        run.rtlIndex = rtlIndex
+        self.run = run
+        budget = DsdNeoRestartBudget()
+        restartCount = 0
+        lastRestartReason = nil
+        nowPlayingTalkgroup = nil
+        nowPlayingText = nil
+        loadLedger(for: settings)
+        do {
+            try launch()
+        } catch {
+            fail("could not relaunch dsd-neo: \(error)")
+        }
+    }
+
+    /// Gives up: stops dsd-neo and has the owner stop the pipeline.
+    func abandon(_ message: String) { fail(message) }
+
+    /// Forgets which talkgroups carried encrypted calls on `settings`' system.
+    /// Only while stopped: a running scanner would write its ledger back.
+    static func forgetEncryptionHistory(for settings: DsdNeoScannerSettings) {
+        try? FileManager.default.removeItem(at: ledgerURL(for: settings))
+    }
+
+    /// Talkgroups the saved ledger would lock out on `settings`' system.
+    static func savedLockouts(for settings: DsdNeoScannerSettings) -> Set<Int> {
+        guard let data = try? Data(contentsOf: ledgerURL(for: settings)),
+              let ledger = try? JSONDecoder().decode(DsdNeoTalkgroupLedger.self, from: data) else { return [] }
+        return ledger.lockedOut
+    }
+
     /// Keystrokes from an attached terminal view.
     func sendToTerminal(_ data: Data) { process?.write(data) }
 
     func resizeTerminal(columns: UInt16, rows: UInt16) {
+        terminalSize = (columns, rows)
         process?.resize(columns: columns, rows: rows)
     }
 
@@ -184,7 +248,7 @@ final class DsdNeoScanner {
         generation += 1
         let current = generation
         let arguments = run.settings.arguments(rtlIndex: run.rtlIndex, groupListPath: groupListPath,
-                                               eventLogPath: Self.eventLogURL.path)
+                                               eventLogPath: Self.eventLogURL.path) + run.stageArguments
         LogStore.shared.log(.info, source: "DsdNeoScanner",
                             "launching dsd-neo \(arguments.joined(separator: " "))")
         process = try PseudoTerminalProcess(
@@ -192,20 +256,22 @@ final class DsdNeoScanner {
             arguments: arguments,
             environment: run.installation.environment(),
             workingDirectory: Self.directory,
+            columns: terminalSize.columns,
+            rows: terminalSize.rows,
             onOutput: { [weak self] data in
-                Task { @MainActor in
+                Task { @MainActor [weak self] in
                     guard let self, self.generation == current else { return }
                     self.terminalOutput(data)
                 }
             },
             onStderrLine: { [weak self] line in
-                Task { @MainActor in
+                Task { @MainActor [weak self] in
                     guard let self, self.generation == current else { return }
                     self.stderrLine(line)
                 }
             },
             onExit: { [weak self] status in
-                Task { @MainActor in
+                Task { @MainActor [weak self] in
                     guard let self, self.generation == current else { return }
                     self.processExited(status: status)
                 }
