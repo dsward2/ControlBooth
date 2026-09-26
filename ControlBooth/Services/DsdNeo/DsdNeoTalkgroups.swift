@@ -69,7 +69,11 @@ nonisolated struct DsdNeoGroupList: Equatable {
     /// (mode A) beats a manual lockout (B) beats an encryption lockout (DE)
     /// beats the list's own mode. Override names replace the list's names.
     /// Talkgroups the list lacks get rows of their own when named or locked.
-    func applying(_ overrides: DsdNeoTalkgroupOverrides, encryptedLockouts: Set<Int>) -> DsdNeoGroupList {
+    /// With `allowListOnly` (dsd-neo run with `-W`, which follows only mode A
+    /// rows) every talkgroup that isn't Always Allow is blocked, so the list's
+    /// own all-A rows don't let everything through.
+    func applying(_ overrides: DsdNeoTalkgroupOverrides, encryptedLockouts: Set<Int>,
+                  allowListOnly: Bool = false) -> DsdNeoGroupList {
         let encrypted = encryptedLockouts.subtracting(overrides.alwaysAllowed)
         let headerFields = header.split(separator: ",", omittingEmptySubsequences: false)
             .map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
@@ -79,6 +83,7 @@ nonisolated struct DsdNeoGroupList: Equatable {
             if overrides.alwaysAllowed.contains(tg) { return "A" }
             if overrides.lockedOut.contains(tg) { return "B" }
             if encrypted.contains(tg) { return "DE" }
+            if allowListOnly { return "B" }
             return listed
         }
         func csvSafe(_ s: String) -> String { s.replacingOccurrences(of: ",", with: ";") }

@@ -41,6 +41,26 @@ nonisolated struct DsdNeoInstallation: Equatable {
     }
 }
 
+/// Which calls the scanner follows on its system.
+nonisolated enum DsdNeoFollowMode: String, Codable, CaseIterable, Identifiable {
+    /// Every talkgroup that isn't locked out.
+    case scanAll = "scan"
+    /// Only talkgroups marked Always Allow (dsd-neo's `-W` allow-list mode).
+    case allowListOnly = "allowList"
+    /// Only `holdTalkgroup` (dsd-neo's `-I`).
+    case hold = "hold"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .scanAll: return "Scan All"
+        case .allowListOnly: return "Always Allow Only"
+        case .hold: return "Hold Talkgroup"
+        }
+    }
+}
+
 /// How the scanner runs dsd-neo. One system (a trunked control channel) on
 /// one RTL-SDR; the dsd-neo Scanner tab edits these. Stored as JSON in
 /// ControlBooth's defaults under `dsdNeoScanner.settings` (by path —
@@ -70,6 +90,17 @@ nonisolated struct DsdNeoScannerSettings: Codable, Equatable {
     /// ("BEE00-188"), filled in by the scanner. Optional so settings saved
     /// before it existed still decode.
     var systemID: String?
+    /// Which calls to follow; nil (settings saved before this existed) is
+    /// Scan All.
+    var followMode: DsdNeoFollowMode?
+    /// The talkgroup Hold Talkgroup mode stays on.
+    var holdTalkgroup: Int?
+
+    var effectiveFollowMode: DsdNeoFollowMode {
+        let mode = followMode ?? .scanAll
+        if mode == .hold, (holdTalkgroup ?? 0) <= 0 { return .scanAll }
+        return mode
+    }
 
     var isConfigured: Bool { controlChannelHz > 0 && !rtlSerial.isEmpty }
 
@@ -110,6 +141,11 @@ nonisolated struct DsdNeoScannerSettings: Codable, Equatable {
         ]
         if let groupListPath { args += ["-G", groupListPath] }
         if encryptionLockout { args.append("--enc-lockout") }
+        switch effectiveFollowMode {
+        case .scanAll: break
+        case .allowListOnly: args.append("-W")
+        case .hold: args += ["-I", String(holdTalkgroup ?? 0)]
+        }
         args += [
             "-o", "udp:127.0.0.1:\(audioPort)",
             "-J", eventLogPath,

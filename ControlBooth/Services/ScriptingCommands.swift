@@ -157,3 +157,86 @@ nonisolated final class StopAirPlayRelayCommand: NSScriptCommand {
         }
     }
 }
+
+@MainActor
+private func reportFailure(_ error: Error, to command: NSScriptCommand) {
+    command.scriptErrorNumber = NSInternalScriptError
+    command.scriptErrorString = "\(error)"
+}
+
+@objc(DsdNeoStatusCommand)
+nonisolated final class DsdNeoStatusCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        MainActor.assumeIsolated {
+            guard let (store, runner) = scriptingServices(reportingTo: self) else {
+                return nil
+            }
+            return DsdNeoRemoteControl.statusJSON(store: store, runner: runner)
+        }
+    }
+}
+
+@objc(DsdNeoSetModeCommand)
+nonisolated final class DsdNeoSetModeCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        MainActor.assumeIsolated {
+            guard let (_, runner) = scriptingServices(reportingTo: self) else {
+                return nil
+            }
+            guard let name = directParameter as? String, let mode = DsdNeoFollowMode(rawValue: name) else {
+                scriptErrorNumber = NSArgumentsWrongScriptError
+                scriptErrorString = "The mode must be one of: "
+                    + DsdNeoFollowMode.allCases.map(\.rawValue).joined(separator: ", ") + "."
+                return nil
+            }
+            let talkgroup = (evaluatedArguments?["talkgroup"] as? NSNumber)?.intValue
+            do {
+                try DsdNeoRemoteControl.setMode(mode, holdTalkgroup: talkgroup, runner: runner)
+            } catch {
+                reportFailure(error, to: self)
+            }
+            return nil
+        }
+    }
+}
+
+@objc(DsdNeoSkipCommand)
+nonisolated final class DsdNeoSkipCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        MainActor.assumeIsolated {
+            guard let (_, runner) = scriptingServices(reportingTo: self) else {
+                return nil
+            }
+            DsdNeoRemoteControl.skipCall(runner: runner)
+            return nil
+        }
+    }
+}
+
+@objc(DsdNeoSetPolicyCommand)
+nonisolated final class DsdNeoSetPolicyCommand: NSScriptCommand {
+    static let policies: [String: DsdNeoTalkgroupOverrides.Policy] = [
+        "lockout": .lockOut, "allow": .allow, "automatic": .automatic,
+    ]
+
+    override func performDefaultImplementation() -> Any? {
+        MainActor.assumeIsolated {
+            guard let (_, runner) = scriptingServices(reportingTo: self) else {
+                return nil
+            }
+            guard let talkgroup = (directParameter as? NSNumber)?.intValue,
+                  let name = evaluatedArguments?["policy"] as? String,
+                  let policy = Self.policies[name] else {
+                scriptErrorNumber = NSArgumentsWrongScriptError
+                scriptErrorString = "A talkgroup number and a policy (lockout, allow or automatic) are required."
+                return nil
+            }
+            do {
+                try DsdNeoRemoteControl.setPolicy(policy, for: talkgroup, runner: runner)
+            } catch {
+                reportFailure(error, to: self)
+            }
+            return nil
+        }
+    }
+}

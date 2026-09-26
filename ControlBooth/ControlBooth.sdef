@@ -63,5 +63,40 @@
             <access-group identifier="com.dsward.ControlBooth.pipelines"/>
         </command>
 
+        <command name="dsd-neo status" code="CBthDnSt"
+                 description="The dsd-neo Scanner's state, follow mode, talkgroup being heard and talkgroup lockouts, as JSON.">
+            <cocoa class="DsdNeoStatusCommand"/>
+            <access-group identifier="com.dsward.ControlBooth.pipelines"/>
+            <result type="text" description="A JSON object (see DsdNeoRemoteControl.Status)."/>
+        </command>
+
+        <command name="set dsd-neo mode" code="CBthDnMd"
+                 description="Choose which calls the dsd-neo Scanner follows. Relaunches dsd-neo if it is running.">
+            <cocoa class="DsdNeoSetModeCommand"/>
+            <access-group identifier="com.dsward.ControlBooth.pipelines"/>
+            <direct-parameter type="text" description="scan, allowList or hold."/>
+            <parameter name="talkgroup" code="DnTg" type="integer" optional="yes"
+                       description="The talkgroup to hold (required for hold).">
+                <cocoa key="talkgroup"/>
+            </parameter>
+        </command>
+
+        <command name="skip dsd-neo call" code="CBthDnSk"
+                 description="Leave the call the dsd-neo Scanner is following and return to the control channel.">
+            <cocoa class="DsdNeoSkipCommand"/>
+            <access-group identifier="com.dsward.ControlBooth.pipelines"/>
+        </command>
+
+        <command name="set dsd-neo talkgroup policy" code="CBthDnPo"
+                 description="Lock out, always allow, or return a talkgroup to automatic. Relaunches dsd-neo if it is running.">
+            <cocoa class="DsdNeoSetPolicyCommand"/>
+            <access-group identifier="com.dsward.ControlBooth.pipelines"/>
+            <direct-parameter type="integer" description="The talkgroup number."/>
+            <parameter name="policy" code="DnPo" type="text"
+                       description="lockout, allow or automatic.">
+                <cocoa key="policy"/>
+            </parameter>
+        </command>
+
     </suite>
 </dictionary>

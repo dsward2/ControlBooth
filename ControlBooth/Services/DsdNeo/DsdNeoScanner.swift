@@ -251,6 +251,15 @@ final class DsdNeoScanner {
         }
     }
 
+    /// Leaves the call being heard: dsd-neo's `C` hotkey returns it to the
+    /// control channel, where it follows the next grant. dsd-neo's terminal
+    /// has no per-call skip, so a talkgroup whose call is still going can be
+    /// granted, and followed, again.
+    func skipCall() {
+        guard process != nil else { return }
+        process?.write(Data("C".utf8))
+    }
+
     /// Keystrokes from an attached terminal view.
     func sendToTerminal(_ data: Data) { process?.write(data) }
 
@@ -291,7 +300,8 @@ final class DsdNeoScanner {
         listNames = groups.displayNames
         rebuildNames()
         let encryptedLockouts = run.settings.encryptionLockout ? ledger.lockedOut : []
-        let effective = groups.applying(overrides, encryptedLockouts: encryptedLockouts)
+        let effective = groups.applying(overrides, encryptedLockouts: encryptedLockouts,
+                                        allowListOnly: run.settings.effectiveFollowMode == .allowListOnly)
         lockedOutTalkgroups = encryptedLockouts.subtracting(overrides.alwaysAllowed).union(overrides.lockedOut)
         lockoutChangesPending = false
         if !effective.rows.isEmpty {

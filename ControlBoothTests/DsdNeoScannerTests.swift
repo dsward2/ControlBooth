@@ -233,6 +233,31 @@ struct DsdNeoSettingsTests {
         #expect(args.last == "-W")
     }
 
+    @Test func followModes() {
+        var settings = awin
+        #expect(settings.effectiveFollowMode == .scanAll)
+        #expect(!settings.arguments(rtlIndex: 0, groupListPath: nil, eventLogPath: "/e").contains("-W"))
+
+        settings.followMode = .allowListOnly
+        #expect(settings.arguments(rtlIndex: 0, groupListPath: nil, eventLogPath: "/e").contains("-W"))
+
+        settings.followMode = .hold
+        // Hold without a talkgroup falls back to scanning everything.
+        #expect(settings.effectiveFollowMode == .scanAll)
+        #expect(!settings.arguments(rtlIndex: 0, groupListPath: nil, eventLogPath: "/e").contains("-I"))
+        settings.holdTalkgroup = 3
+        let args = settings.arguments(rtlIndex: 0, groupListPath: nil, eventLogPath: "/e")
+        let i = args.firstIndex(of: "-I")
+        #expect(i != nil && args[i! + 1] == "3")
+    }
+
+    @Test func settingsWithoutFollowModeStillDecode() throws {
+        let json = #"{"rtlSerial":"00000180","controlChannelHz":853187500,"gainDB":48,"ppm":0,"bandwidthKHz":24,"groupListPath":"","encryptionLockout":true,"audioPort":23480,"extraArguments":[]}"#
+        let settings = try JSONDecoder().decode(DsdNeoScannerSettings.self, from: Data(json.utf8))
+        #expect(settings.followMode == nil)
+        #expect(settings.effectiveFollowMode == .scanAll)
+    }
+
     @Test func megahertzFormatting() {
         #expect(DsdNeoScannerSettings.megahertz(853_187_500) == "853.1875M")
         #expect(DsdNeoScannerSettings.megahertz(851_000_000) == "851M")
