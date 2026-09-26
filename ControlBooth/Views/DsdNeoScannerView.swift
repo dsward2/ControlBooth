@@ -84,6 +84,9 @@ struct DsdNeoScannerView: View {
         }
         .onChange(of: draft.groupListPath) { reloadGroupList() }
         .onChange(of: scanner.isActive) { savedState = DsdNeoScanner.savedState(for: DsdNeoScannerSettings.load()) }
+        .onReceive(NotificationCenter.default.publisher(for: DsdNeoRemoteControl.settingsChangedNotification)) { _ in
+            remoteSettingsChanged()
+        }
         .alert("dsd-neo Scanner", isPresented: Binding(get: { errorMessage != nil },
                                                         set: { if !$0 { errorMessage = nil } })) {
             Button("OK", role: .cancel) {}
@@ -204,6 +207,20 @@ struct DsdNeoScannerView: View {
                 Toggle("Lock Out Encrypted Talkgroups", isOn: $draft.encryptionLockout)
                     .help("Skip encrypted calls, and permanently lock out talkgroups that only ever carry encrypted calls.")
             }
+            Section {
+                Picker("Follow", selection: Binding(get: { draft.followMode ?? .scanAll },
+                                                    set: { draft.followMode = $0 })) {
+                    ForEach(DsdNeoFollowMode.allCases) { Text($0.title).tag($0) }
+                }
+                if draft.followMode == .hold {
+                    TextField("Talkgroup", value: $draft.holdTalkgroup, format: .number.grouping(.never),
+                              prompt: Text(scanner.nowPlayingTalkgroup.map(String.init) ?? "e.g. 3"))
+                }
+            } header: {
+                Text("Calls")
+            } footer: {
+                Text(followFooter).font(.caption).foregroundStyle(.secondary)
+            }
             Section("RTL-SDR") {
                 Picker("Device", selection: $draft.rtlSerial) {
                     if draft.rtlSerial.isEmpty { Text("Choose…").tag("") }
@@ -245,6 +262,14 @@ struct DsdNeoScannerView: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    private var followFooter: String {
+        switch draft.followMode ?? .scanAll {
+        case .scanAll: return "Follows every talkgroup that isn't locked out."
+        case .allowListOnly: return "Follows only talkgroups set to Always Allow in the Talkgroups view."
+        case .hold: return "Stays on one talkgroup and ignores all others."
+        }
     }
 
     /// The connected serials, plus the configured one if it isn't connected.
@@ -453,6 +478,22 @@ struct DsdNeoScannerView: View {
         controlChannelMHz = saved.controlChannelHz > 0
             ? DsdNeoScannerSettings.megahertz(saved.controlChannelHz).dropLast().description : ""
         extraArgumentsText = saved.extraArguments.joined(separator: " ")
+    }
+
+    /// AntennaHead changed the follow mode or lockouts. Take the new saved
+    /// settings, keeping any unsaved local edits to the other fields.
+    private func remoteSettingsChanged() {
+        let stored = DsdNeoScannerSettings.load()
+        savedState = DsdNeoScanner.savedState(for: stored)
+        if hasChanges {
+            draft.followMode = stored.followMode
+            draft.holdTalkgroup = stored.holdTalkgroup
+            saved = stored
+        } else {
+            saved = stored
+            draft = stored
+            revert()
+        }
     }
 
     /// Re-adds the "dsd-neo Scanner" pipeline if the user deleted it.

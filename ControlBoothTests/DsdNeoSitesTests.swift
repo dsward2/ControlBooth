@@ -113,6 +113,25 @@ struct DsdNeoSitesTests {
         #expect(result.displayNames[19402] == "Faulkner Co Sheriff Dispatch, North")
     }
 
+    @Test func allowListOnlyBlocksEverythingNotAllowed() {
+        let list = DsdNeoGroupList(csv: """
+            DEC,Mode,Name,Tag
+            3,A,ASP Tr A,ASP
+            30147,A,LR PD Main,Pulaski Co
+            """)
+        var overrides = DsdNeoTalkgroupOverrides()
+        overrides.setPolicy(.allow, for: 3)
+        overrides.setPolicy(.allow, for: 555)            // not in the list
+        overrides.setName("Named Only", for: 777)
+
+        let result = list.applying(overrides, encryptedLockouts: [], allowListOnly: true)
+        let byTG = Dictionary(uniqueKeysWithValues: result.rows.map { ($0.talkgroup, $0) })
+        #expect(byTG[3]?.mode == "A")
+        #expect(byTG[30147]?.mode == "B")
+        #expect(byTG[555]?.mode == "A")
+        #expect(byTG[777]?.mode == "B")
+    }
+
     @Test func overridePolicyAndNames() {
         var overrides = DsdNeoTalkgroupOverrides()
         overrides.setPolicy(.lockOut, for: 5)
