@@ -7,6 +7,6 @@
 	<key>OSAScriptingDefinition</key>
 	<string>ControlBooth.sdef</string>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>ControlBooth sends Apple Events to AntennaHead to control its audio listening tasks.</string>
+	<string>ControlBooth sends Apple Events to AntennaHead to control its audio listening tasks, and to Music to play AntennaHead Radio.</string>
 </dict>
 </plist>

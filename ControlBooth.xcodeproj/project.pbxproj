@@ -17,6 +17,7 @@
 		0EDA7B032FFB000000C0FFEE /* librtlsdr.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 122003304CD5476295D4A901 /* librtlsdr.framework */; };
 		0EAEBB022FFAC00000BA711A /* PCMUDPSender in CopyFiles */ = {isa = PBXBuildFile; productRef = 0EAEBB012FFAC00000BA711A /* PCMUDPSender */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		0EAEBC032FFAD00000BA711A /* AirPlayReceiver in Frameworks */ = {isa = PBXBuildFile; productRef = 0EAEBC022FFAD00000BA711A /* AirPlayReceiver */; };
+		5ADA71022FFC000000AB0001 /* StationKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5ADA71012FFC000000AB0001 /* StationKit */; };
 		10352754EA18CC5C69347D77 /* AudioInputCapture in CopyFiles */ = {isa = PBXBuildFile; productRef = B43A6DCA67C7CB4EC12E5AFE /* AudioInputCapture */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		1635675B4339037BAEBC13E9 /* AUProcessor in Frameworks */ = {isa = PBXBuildFile; productRef = 0C450AC81DF406E297AA5C0F /* AUProcessor */; };
 		232D8F546066DC5AD8B07479 /* FMDeemphasis in Frameworks */ = {isa = PBXBuildFile; productRef = 84525C229CAA1ABF25B01E0C /* FMDeemphasis */; };
@@ -152,6 +153,7 @@
 				0EAEB9B42FF9865E00BA711A /* GRDB in Frameworks */,
 				D5A7E0132FFB000000A1B2C1 /* SwiftTerm in Frameworks */,
 				0EAEBC032FFAD00000BA711A /* AirPlayReceiver in Frameworks */,
+				5ADA71022FFC000000AB0001 /* StationKit in Frameworks */,
 				5F5D5331CBCE13CD8A221237 /* SharedLogging in Frameworks */,
 				1635675B4339037BAEBC13E9 /* AUProcessor in Frameworks */,
 				FFE9A00AFE4C0412E8B896E8 /* AudioInputCapture in Frameworks */,
@@ -272,6 +274,7 @@
 				0EDA7B022FFB000000C0FFEE /* SDRDeviceAccess */,
 				0EAEBB012FFAC00000BA711A /* PCMUDPSender */,
 				0EAEBC022FFAD00000BA711A /* AirPlayReceiver */,
+				5ADA71012FFC000000AB0001 /* StationKit */,
 				A578DEEA8DE804E207930937 /* SharedLogging */,
 				0C450AC81DF406E297AA5C0F /* AUProcessor */,
 				B43A6DCA67C7CB4EC12E5AFE /* AudioInputCapture */,
@@ -393,6 +396,7 @@
 				D5A7E0112FFB000000A1B2C1 /* XCRemoteSwiftPackageReference "SwiftTerm" */,
 				F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */,
 				0EAEBC012FFAD00000BA711A /* XCLocalSwiftPackageReference "../AirPlayReceiver" */,
+				5ADA71002FFC000000AB0001 /* XCLocalSwiftPackageReference "../StationDirector" */,
 				F5FAD7DC4E894EF44C90EEB6 /* XCLocalSwiftPackageReference "../SharedLogging" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -1031,6 +1035,10 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
+		5ADA71002FFC000000AB0001 /* XCLocalSwiftPackageReference "../StationDirector" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../StationDirector;
+		};
 		0EAEBC012FFAD00000BA711A /* XCLocalSwiftPackageReference "../AirPlayReceiver" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../AirPlayReceiver;
@@ -1094,6 +1102,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = F49B8DC63689EDF41AD7E5E6 /* XCLocalSwiftPackageReference "../PipelineHelpers" */;
 			productName = PCMUDPSender;
+		};
+		5ADA71012FFC000000AB0001 /* StationKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5ADA71002FFC000000AB0001 /* XCLocalSwiftPackageReference "../StationDirector" */;
+			productName = StationKit;
 		};
 		0EAEBC022FFAD00000BA711A /* AirPlayReceiver */ = {
 			isa = XCSwiftPackageProductDependency;

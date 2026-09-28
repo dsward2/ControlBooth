@@ -49,6 +49,9 @@ struct ContentView: View {
 
             DsdNeoScannerView()
                 .tabItem { Label("dsd-neo Scanner", systemImage: "antenna.radiowaves.left.and.right") }
+
+            AntennaHeadRadioView()
+                .tabItem { Label("AntennaHead Radio", systemImage: "radio") }
         }
         .frame(minWidth: 880, minHeight: 560)
     }

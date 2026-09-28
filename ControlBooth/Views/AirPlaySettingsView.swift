@@ -62,7 +62,11 @@ struct AirPlaySettingsView: View {
                 LabeledContent("Status", value: service.isRunning ? "Running" : "Stopped")
                 if service.isRunning {
                     LabeledContent("Audio", value: service.isReceivingAudio ? "Receiving audio" : "Idle — no AirPlay client connected")
-                    LabeledContent("Relay to AntennaHead", value: service.relayEnabled ? "On" : "Off")
+                    if let port = service.stationPort {
+                        LabeledContent("In use by", value: "AntennaHead Radio (relay \(service.relayEnabled ? "on" : "off") → port \(String(port)))")
+                    } else {
+                        LabeledContent("Relay to AntennaHead", value: service.relayEnabled ? "On" : "Off")
+                    }
                     if let track = service.nowPlayingTrack, track.title != nil || track.artist != nil {
                         LabeledContent("Now Playing", value: [track.artist, track.title].compactMap { $0 }.joined(separator: " — "))
                     }

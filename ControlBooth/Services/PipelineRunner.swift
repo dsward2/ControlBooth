@@ -317,6 +317,23 @@ final class PipelineRunner {
         startedDestinations[id] = nil
     }
 
+    /// Stops every running pipeline sending to `port` on this Mac — AntennaHead
+    /// Radio is about to take AntennaHead's receiver, and a pipeline left
+    /// sending there would just exit when AntennaHead reopens it. No 'Stop'
+    /// to AntennaHead: the station's own 'Strt' replaces the source. Returns
+    /// the stopped pipelines' names.
+    func stopPipelines(sendingToLocalPort port: Int) -> [String] {
+        var names: [String] = []
+        for (id, dest) in startedDestinations where Self.isLoopback(dest.host) && dest.port == port {
+            if dsdNeoScanner.pipelineID == id { dsdNeoScanner.stop() }
+            managers[id]?.terminateAndWait()
+            managers[id] = nil
+            startedDestinations[id] = nil
+            names.append(dest.name)
+        }
+        return names
+    }
+
     func stopAll() {
         dsdNeoScanner.stop()
         for manager in managers.values {

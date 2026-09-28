@@ -11,6 +11,7 @@ struct ControlBoothApp: App {
     @State private var scheduler = Scheduler()
     @State private var airPlaySettingsStore = AirPlaySettingsStore()
     @State private var airPlayReceiverService = AirPlayReceiverService()
+    @State private var radioStation = RadioStation()
 
     init() {
         LogStore.shared.configure(appName: "ControlBooth")
@@ -25,11 +26,14 @@ struct ControlBoothApp: App {
                 .environment(scheduler)
                 .environment(airPlaySettingsStore)
                 .environment(airPlayReceiverService)
+                .environment(radioStation)
                 .background(CloseButtonHider())
                 .onAppear {
                     appDelegate.runner = runner
                     appDelegate.store = store
                     appDelegate.airPlayReceiverService = airPlayReceiverService
+                    appDelegate.radioStation = radioStation
+                    radioStation.configure(runner: runner, airPlay: airPlayReceiverService)
                     // A copy hosting unit tests must leave the real app's world
                     // alone: no database seeding, scheduled starts, or AirPlay
                     // receiver competing for port 5000.
@@ -117,6 +121,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var runner: PipelineRunner?
     var store: PipelineStore?
     var airPlayReceiverService: AirPlayReceiverService?
+    var radioStation: RadioStation?
 
     override init() {
         super.init()
@@ -133,6 +138,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard !Self.isHostingUnitTests else { return }
         // Graceful teardown on normal quit; on a crash the helpers'
         // --exit-with-parent watchdogs collapse the pipelines instead.
+        radioStation?.stopImmediately()
         runner?.stopAll()
         airPlayReceiverService?.stopAll()
         // Best-effort — a crash skips this the same way it skips the
