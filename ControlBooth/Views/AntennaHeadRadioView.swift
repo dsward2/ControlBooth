@@ -13,6 +13,12 @@ struct AntennaHeadRadioView: View {
     @State private var previewText: String?
     @State private var previewing = false
     @State private var voiceTester = AVSpeechSynthesizer()
+    @State private var macBrowser = RemoteMacBrowser()
+    /// "Another Mac" chosen; kept separately so the host field can be empty while typing.
+    @State private var musicFromAnotherMac = false
+    @State private var remotePassword = ""
+    @State private var connectionResult: (ok: Bool, text: String)?
+    @State private var testingConnection = false
 
     var body: some View {
         @Bindable var station = station
@@ -33,7 +39,13 @@ struct AntennaHeadRadioView: View {
             logPane
                 .frame(minWidth: 260, idealWidth: 340)
         }
-        .onAppear(perform: refreshMusicLists)
+        .onAppear {
+            musicFromAnotherMac = !(station.settings.musicHost ?? "").isEmpty
+            loadRemotePassword()
+            if musicFromAnotherMac { macBrowser.start() }
+            refreshMusicLists()
+        }
+        .onDisappear { macBrowser.stop() }
     }
 
     // MARK: On Air
@@ -133,6 +145,40 @@ struct AntennaHeadRadioView: View {
 
     private func musicSection(_ s: Binding<StationConfig>) -> some View {
         Section {
+            Picker("Music Source", selection: Binding(
+                get: { musicFromAnotherMac },
+                set: { remote in
+                    musicFromAnotherMac = remote
+                    connectionResult = nil
+                    if remote {
+                        macBrowser.start()
+                    } else {
+                        macBrowser.stop()
+                        s.wrappedValue.musicHost = nil
+                        refreshMusicLists()
+                    }
+                }
+            )) {
+                Text("This Mac").tag(false)
+                Text("Another Mac").tag(true)
+            }
+            .pickerStyle(.segmented)
+
+            if musicFromAnotherMac {
+                remoteMusicFields(s)
+            }
+
+            HStack {
+                Button(testingConnection ? "Connecting…" : "Test Connection") { testConnection() }
+                    .disabled(testingConnection || (musicFromAnotherMac && (s.wrappedValue.musicHost ?? "").isEmpty))
+                if let connectionResult {
+                    Label(connectionResult.text, systemImage: connectionResult.ok ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(connectionResult.ok ? .green : .red)
+                        .textSelection(.enabled)
+                }
+            }
+
             Picker("Playlist", selection: s.playlist) {
                 ForEach(Self.including(s.wrappedValue.playlist, in: playlists), id: \.self) { Text($0) }
             }
@@ -150,9 +196,46 @@ struct AntennaHeadRadioView: View {
                     .help("Reload playlists and AirPlay devices from Music")
             }
         } footer: {
-            Text("The AirPlay device is ControlBooth's own receiver (its Device Name on the AirPlay Receiver tab). Only playlists with tracks are listed.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("The AirPlay device is ControlBooth's own receiver (its Device Name on the AirPlay Receiver tab). Only playlists with tracks are listed.")
+                if musicFromAnotherMac {
+                    Text("On the other Mac: turn on System Settings › General › Sharing › Remote Application Scripting, keep Music (or iTunes) open, and make sure it can see \"\(s.wrappedValue.airPlayDeviceName)\" as an AirPlay speaker. The music still reaches the station over AirPlay. The password is kept in this Mac's Keychain.")
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private func remoteMusicFields(_ s: Binding<StationConfig>) -> some View {
+        let host = Binding(get: { s.wrappedValue.musicHost ?? "" },
+                           set: { s.wrappedValue.musicHost = $0.trimmingCharacters(in: .whitespaces); loadRemotePassword() })
+        let user = Binding(get: { s.wrappedValue.musicHostUser ?? "" },
+                           set: { s.wrappedValue.musicHostUser = $0; loadRemotePassword() })
+        Picker("Mac", selection: host) {
+            if macBrowser.macs.isEmpty {
+                Text(macBrowser.isBrowsing ? "Looking for Macs…" : "None Found").tag(host.wrappedValue)
+            } else if !macBrowser.macs.contains(where: { $0.host == host.wrappedValue }) {
+                Text(host.wrappedValue.isEmpty ? "Choose a Mac" : host.wrappedValue).tag(host.wrappedValue)
+            }
+            ForEach(macBrowser.macs) { mac in
+                Text(mac.name).tag(mac.host)
+            }
+        }
+        .help("Macs on this network with Remote Application Scripting turned on")
+        TextField("Host Name or Address", text: host, prompt: Text("Studio-Mac.local"))
+        TextField("User Name", text: user, prompt: Text("an account on that Mac"))
+        SecureField("Password", text: $remotePassword)
+            .onChange(of: remotePassword) { _, password in
+                guard let h = s.wrappedValue.musicHost, !h.isEmpty,
+                      let u = s.wrappedValue.musicHostUser, !u.isEmpty else { return }
+                RemoteMusicCredentials.setPassword(password, user: u, host: h)
+            }
+        Picker("App", selection: Binding(get: { s.wrappedValue.musicApp ?? "Music" },
+                                         set: { s.wrappedValue.musicApp = $0 })) {
+            Text("Music").tag("Music")
+            Text("iTunes (older Macs)").tag("iTunes")
         }
     }
 
@@ -192,7 +275,7 @@ struct AntennaHeadRadioView: View {
                 LabeledContent("Headlines at the Top of the Hour", value: "\(s.wrappedValue.headlineCount)")
             }
             VStack(alignment: .leading, spacing: 4) {
-                Text("News Feeds (RSS or Atom, one URL per line)")
+                Text("News Feeds (RSS or Atom, one per line; put the name to credit first: NPR | https://…)")
                 TextEditor(text: Binding(
                     get: { s.wrappedValue.newsFeeds.joined(separator: "\n") },
                     set: { s.wrappedValue.newsFeeds = $0.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) } }
@@ -318,9 +401,39 @@ struct AntennaHeadRadioView: View {
     // MARK: Helpers
 
     private func refreshMusicLists() {
-        let music = MusicPlayer()
+        let music = MusicPlayer(target: station.musicTarget())
+        // A remote Mac that isn't answering would just give empty lists.
+        if music.target.isRemote, (try? music.testConnection()) == nil { return }
         playlists = music.playlistNames()
         airPlayDevices = music.airPlayDeviceNames()
+    }
+
+    private func testConnection() {
+        testingConnection = true
+        connectionResult = nil
+        // Let the button show "Connecting…" before the (blocking) Apple Event.
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(50))
+            do {
+                let text = try MusicPlayer(target: station.musicTarget()).testConnection()
+                connectionResult = (true, text)
+                refreshMusicLists()
+            } catch {
+                connectionResult = (false, "\(error)")
+            }
+            testingConnection = false
+        }
+    }
+
+    private func loadRemotePassword() {
+        let settings = station.settings
+        guard let host = settings.musicHost, !host.isEmpty,
+              let user = settings.musicHostUser, !user.isEmpty else {
+            if !remotePassword.isEmpty { remotePassword = "" }
+            return
+        }
+        let saved = RemoteMusicCredentials.password(user: user, host: host) ?? ""
+        if saved != remotePassword { remotePassword = saved }
     }
 
     private func tryVoice(_ config: StationConfig) {

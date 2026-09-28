@@ -76,7 +76,8 @@ final class RadioStation {
         let director = Director(config: config,
                                 options: .init(output: .udp(port: config.ports.antennaHead),
                                                announceToAntennaHead: true,
-                                               controlMusic: true),
+                                               controlMusic: true,
+                                               musicPassword: musicPassword(for: config)),
                                 relay: AirPlayStationRelay(service: airPlay))
         self.director = director
         runningSettings = settings
@@ -99,6 +100,18 @@ final class RadioStation {
 
     func fire(_ segment: StationConfig.Segment) {
         director?.fire(segment)
+    }
+
+    /// The music source for `config` (defaults to the saved settings), with
+    /// the remote Mac's password from the Keychain.
+    func musicTarget(for config: StationConfig? = nil) -> MusicTarget {
+        let config = config ?? settings
+        return config.musicTarget(password: musicPassword(for: config))
+    }
+
+    private func musicPassword(for config: StationConfig) -> String? {
+        guard let host = config.musicHost, !host.isEmpty, let user = config.musicHostUser else { return nil }
+        return RemoteMusicCredentials.password(user: user, host: host)
     }
 
     /// App termination: no time for the orderly stop.
