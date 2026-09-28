@@ -70,6 +70,9 @@ final class AirPlayReceiverService {
     var isReceivingAudio: Bool { controller.isReceivingAudio }
     var relayEnabled: Bool { controller.relayEnabled }
     var nowPlayingTrack: AirPlayReceiverController.NowPlayingTrack? { controller.nowPlayingTrack }
+    /// Set while AntennaHead Radio has the receiver: the relay then goes to
+    /// the station's music port on this Mac instead of the saved destination.
+    private(set) var stationPort: UInt16?
 
     init() {
         controller = AirPlayReceiverController(configuration: AirPlayReceiverService.makeConfiguration(from: .fallback()))
@@ -93,6 +96,8 @@ final class AirPlayReceiverService {
     /// settings). Starts/stops the receiver based on `enabled`, then
     /// reconciles the relay state against what's currently applied.
     func applySettings(_ settings: AirPlaySettings) {
+        // Saved now, applied when AntennaHead Radio gives the receiver back.
+        guard stationPort == nil else { return }
         guard settings.enabled else {
             stop()
             return
@@ -106,6 +111,11 @@ final class AirPlayReceiverService {
     /// one action. No self-announce — see the type doc comment. Persists so
     /// the Settings UI and future launches reflect it.
     func remoteEnableRelay() {
+        guard stationPort == nil else {
+            LogStore.shared.log(.warning, source: "AirPlayReceiverService",
+                                "AntennaHead asked for the AirPlay relay while AntennaHead Radio has the receiver; ignored")
+            return
+        }
         guard let store = settingsStore else { return }
         var settings = store.settings
         settings.enabled = true
@@ -121,12 +131,64 @@ final class AirPlayReceiverService {
     /// receiver itself running (stays "receiving but not sending"). No
     /// self-announce — see the type doc comment.
     func remoteDisableRelay() {
+        guard stationPort == nil else { return }
         guard let store = settingsStore else { return }
         var settings = store.settings
         settings.relayEnabled = false
         persist(settings, into: store)
         announcedToAntennaHead = false
         controller.setRelayEnabled(false)
+    }
+
+    // MARK: AntennaHead Radio
+
+    /// AntennaHead Radio taking the receiver: restarts it relaying to `port`
+    /// on this Mac, relay off until the station is listening there. The
+    /// restart matters: a fresh shairport-sync has no stale session from an
+    /// earlier Music.app connection (those make Music fail to reconnect).
+    /// Any AntennaHead relay just ends — no announce-stop, since the station
+    /// announces itself to AntennaHead next.
+    func beginStationRelay(port: UInt16) async {
+        startTask?.cancel()
+        startTask = nil
+        announcedToAntennaHead = false
+        stationPort = port
+        var configuration = Self.makeConfiguration(from: settingsStore?.settings ?? .fallback())
+        configuration.udpHost = "127.0.0.1"
+        configuration.udpPort = port
+        configuration.relayEnabled = false
+        if controller.isRunning {
+            controller.updateConfiguration(configuration)   // restarts it
+        } else {
+            controller.updateConfiguration(configuration)
+            controller.start()
+        }
+        appliedIdentity = nil
+        // The relaunch is asynchronous (it waits for port 5000 to free).
+        for _ in 0..<60 where !controller.isRunning {
+            try? await Task.sleep(for: .milliseconds(100))
+        }
+    }
+
+    func setStationRelay(_ on: Bool) {
+        guard stationPort != nil else { return }
+        controller.setRelayEnabled(on)
+    }
+
+    /// AntennaHead Radio giving the receiver back: re-applies the saved
+    /// settings (restarting the receiver, which also drops the station's
+    /// Music.app session).
+    func endStationRelay() {
+        guard stationPort != nil else { return }
+        controller.setRelayEnabled(false)
+        stationPort = nil
+        appliedIdentity = nil
+        announcedToAntennaHead = false
+        if let settings = settingsStore?.settings {
+            applySettings(settings)
+        } else {
+            stop()
+        }
     }
 
     private func persist(_ settings: AirPlaySettings, into store: AirPlaySettingsStore) {
