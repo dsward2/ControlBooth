@@ -61,6 +61,9 @@ final class RadioStation {
     func configure(runner: PipelineRunner, airPlay: AirPlayReceiverService) {
         self.runner = runner
         self.airPlay = airPlay
+        runner.willTakeLocalPort = { [weak self] port in
+            self?.yieldAntennaHeadInput(port: port)
+        }
         Self.logSink = self
         Log.handler = { message in
             Task { @MainActor in RadioStation.logSink?.record(message) }
@@ -108,6 +111,19 @@ final class RadioStation {
 
     func stop() {
         director?.stop()
+    }
+
+    /// A pipeline is about to send to `port` on this Mac (`nil`: every
+    /// pipeline is being stopped, as AntennaHead does before its own Listen).
+    /// If that's the port the station sends to, go off the air the way a
+    /// pipeline would be stopped: the station's audio stops at once, the rest
+    /// of the stop (Music, the AirPlay receiver) finishes in the background.
+    private func yieldAntennaHeadInput(port: Int?) {
+        guard let director, let running = runningSettings else { return }
+        if let port, port != Int(running.ports.antennaHead) { return }
+        record(port == nil ? "stopping: all pipelines stopped"
+                           : "stopping: a pipeline is taking AntennaHead's input (port \(port!))")
+        director.releaseOutput()
     }
 
     func fire(_ segment: StationConfig.Segment) {
