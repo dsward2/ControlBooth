@@ -40,6 +40,11 @@ final class RadioStation {
     var isOnAir: Bool { director != nil }
     var needsRestart: Bool { runningSettings.map { $0 != settings } ?? false }
 
+    /// Held while on air. The station's audio passes through this process
+    /// (StationKit's mixer-output thread) and its director runs here, so App
+    /// Nap throttling ControlBooth in the background starved AntennaHead of
+    /// audio and stalled HLS players; this keeps it out of App Nap.
+    @ObservationIgnored private var onAirActivity: NSObjectProtocol?
     @ObservationIgnored private weak var runner: PipelineRunner?
     @ObservationIgnored private weak var airPlay: AirPlayReceiverService?
 
@@ -82,6 +87,9 @@ final class RadioStation {
         self.director = director
         runningSettings = settings
         lastError = nil
+        onAirActivity = ProcessInfo.processInfo.beginActivity(
+            options: [.userInitiated, .latencyCritical, .idleSystemSleepDisabled],
+            reason: "AntennaHead Radio is on the air")
         Task { @MainActor in
             do {
                 try await director.run()
@@ -91,6 +99,10 @@ final class RadioStation {
             if lastError == nil, let failure = director.failure { lastError = failure }
             self.director = nil
             runningSettings = nil
+            if let activity = onAirActivity {
+                ProcessInfo.processInfo.endActivity(activity)
+                onAirActivity = nil
+            }
         }
     }
 
