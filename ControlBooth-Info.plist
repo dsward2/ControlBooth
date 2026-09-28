@@ -6,6 +6,12 @@
 	<true/>
 	<key>OSAScriptingDefinition</key>
 	<string>ControlBooth.sdef</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>ControlBooth looks for Macs on your network that share their Music app, so AntennaHead Radio can play music from them.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_eppc._tcp</string>
+	</array>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>ControlBooth sends Apple Events to AntennaHead to control its audio listening tasks, and to Music to play AntennaHead Radio.</string>
 </dict>
