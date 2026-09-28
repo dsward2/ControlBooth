@@ -80,6 +80,12 @@ final class PipelineRunner {
     /// stopped elsewhere can never cause a false "in use" rejection.
     private var startedDestinations: [Int64: (name: String, host: String, port: Int)] = [:]
 
+    /// AntennaHead Radio isn't a pipeline, but it sends to AntennaHead's
+    /// receiver like one. Called before a pipeline starts sending to a port on
+    /// this Mac (with that port), and by `stopAll()` (with `nil`), so the
+    /// station can give the port up the way another pipeline would be stopped.
+    var willTakeLocalPort: ((Int?) -> Void)?
+
     func manager(for pipeline: Pipeline) -> TaskPipelineManager? {
         guard let id = pipeline.id else { return nil }
         return managers[id]
@@ -174,6 +180,9 @@ final class PipelineRunner {
         // pipeline a later `.udpToAntennaHead` start might otherwise compare
         // against.
         if case .udpToAntennaHead = output {
+            if Self.isLoopback(pipeline.destinationHost) {
+                willTakeLocalPort?(pipeline.destinationPort)
+            }
             for (otherID, otherManager) in managers where otherID != id && otherManager.status == .running {
                 guard let dest = startedDestinations[otherID],
                       dest.host == pipeline.destinationHost,
@@ -335,6 +344,7 @@ final class PipelineRunner {
     }
 
     func stopAll() {
+        willTakeLocalPort?(nil)
         dsdNeoScanner.stop()
         for manager in managers.values {
             manager.terminateAndWait()
