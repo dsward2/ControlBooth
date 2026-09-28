@@ -29,6 +29,16 @@ private func airPlayService(reportingTo command: NSScriptCommand) -> AirPlayRece
 }
 
 @MainActor
+private func radioStation(reportingTo command: NSScriptCommand) -> RadioStation? {
+    guard let station = AppDelegate.shared?.radioStation else {
+        command.scriptErrorNumber = NSInternalScriptError
+        command.scriptErrorString = "ControlBooth is still launching; try again."
+        return nil
+    }
+    return station
+}
+
+@MainActor
 private func requiredPipelineName(from command: NSScriptCommand) -> String? {
     guard let name = command.directParameter as? String, !name.isEmpty else {
         command.scriptErrorNumber = NSRequiredArgumentsMissingScriptError
@@ -236,6 +246,36 @@ nonisolated final class DsdNeoSetPolicyCommand: NSScriptCommand {
             } catch {
                 reportFailure(error, to: self)
             }
+            return nil
+        }
+    }
+}
+
+@objc(RadioStatusCommand)
+nonisolated final class RadioStatusCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        MainActor.assumeIsolated {
+            radioStation(reportingTo: self)?.remoteStatusJSON()
+        }
+    }
+}
+
+/// Returns at once; the station reports failures through `radio status`.
+@objc(StartRadioCommand)
+nonisolated final class StartRadioCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        MainActor.assumeIsolated {
+            radioStation(reportingTo: self)?.start()
+            return nil
+        }
+    }
+}
+
+@objc(StopRadioCommand)
+nonisolated final class StopRadioCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        MainActor.assumeIsolated {
+            radioStation(reportingTo: self)?.stop()
             return nil
         }
     }

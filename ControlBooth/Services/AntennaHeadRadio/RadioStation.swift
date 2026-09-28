@@ -129,6 +129,50 @@ final class RadioStation {
         return await director.preview()
     }
 
+    // MARK: Status
+
+    /// The one-line status the tab and AntennaHead's ControlBooth page show.
+    var statusText: String {
+        switch director?.phase {
+        case nil, .stopped?: return "Off the Air"
+        case .starting?: return "Starting…"
+        case .onAir?: return "On the Air"
+        case .segment(let segment)?: return "On the Air: \(AntennaHeadRadioView.title(segment))"
+        case .stopping?: return "Stopping…"
+        }
+    }
+
+    /// What the "radio status" AppleEvent reports to AntennaHead.
+    struct RemoteStatus: Codable, Equatable {
+        /// "stopped", "starting", "onAir", "segment" or "stopping".
+        var phase: String
+        var statusText: String
+        /// "Title — Artist" of the song playing.
+        var nowPlaying: String?
+        var lastError: String?
+        /// The source name the station announces to AntennaHead under.
+        var sourceName: String
+    }
+
+    func remoteStatus() -> RemoteStatus {
+        let phase: String
+        switch director?.phase {
+        case nil, .stopped?: phase = "stopped"
+        case .starting?: phase = "starting"
+        case .onAir?: phase = "onAir"
+        case .segment?: phase = "segment"
+        case .stopping?: phase = "stopping"
+        }
+        return RemoteStatus(phase: phase, statusText: statusText, nowPlaying: director?.nowPlaying,
+                            lastError: lastError,
+                            sourceName: (runningSettings ?? settings).antennaHeadSourceName)
+    }
+
+    func remoteStatusJSON() -> String {
+        guard let data = try? JSONEncoder().encode(remoteStatus()) else { return "{}" }
+        return String(decoding: data, as: UTF8.self)
+    }
+
     // MARK: Log
 
     private func record(_ message: String) {

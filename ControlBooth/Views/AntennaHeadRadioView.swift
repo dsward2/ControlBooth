@@ -56,7 +56,7 @@ struct AntennaHeadRadioView: View {
                 Circle()
                     .fill(statusColor)
                     .frame(width: 10, height: 10)
-                Text(statusText)
+                Text(station.statusText)
                     .font(.headline)
                 Spacer()
                 if station.isOnAir {
@@ -113,16 +113,6 @@ struct AntennaHeadRadioView: View {
             Text("Plays a Music playlist through ControlBooth's AirPlay receiver to AntennaHead, with an announcer who talks over song endings and reads the news and weather on the hour clock below. While on air the station uses the AirPlay receiver and AntennaHead's ControlBooth input, and gives both back when it stops. For personal use only: Apple Music tracks aren't licensed for rebroadcast.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-        }
-    }
-
-    private var statusText: String {
-        switch station.director?.phase {
-        case nil, .stopped?: return "Off the Air"
-        case .starting?: return "Starting…"
-        case .onAir?: return "On the Air"
-        case .segment(let segment)?: return "On the Air: \(Self.title(segment))"
-        case .stopping?: return "Stopping…"
         }
     }
 

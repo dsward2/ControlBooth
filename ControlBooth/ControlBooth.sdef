@@ -98,5 +98,24 @@
             </parameter>
         </command>
 
+        <command name="radio status" code="CBthRdSt"
+                 description="AntennaHead Radio's state, status line, song and last error, as JSON.">
+            <cocoa class="RadioStatusCommand"/>
+            <access-group identifier="com.dsward.ControlBooth.pipelines"/>
+            <result type="text" description="A JSON object (see RadioStation.RemoteStatus)."/>
+        </command>
+
+        <command name="start radio" code="CBthRdOn"
+                 description="Put AntennaHead Radio on the air with its saved settings.">
+            <cocoa class="StartRadioCommand"/>
+            <access-group identifier="com.dsward.ControlBooth.pipelines"/>
+        </command>
+
+        <command name="stop radio" code="CBthRdOf"
+                 description="Take AntennaHead Radio off the air.">
+            <cocoa class="StopRadioCommand"/>
+            <access-group identifier="com.dsward.ControlBooth.pipelines"/>
+        </command>
+
     </suite>
 </dictionary>
