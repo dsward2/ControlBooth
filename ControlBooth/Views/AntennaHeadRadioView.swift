@@ -19,6 +19,10 @@ struct AntennaHeadRadioView: View {
     @State private var remotePassword = ""
     @State private var connectionResult: (ok: Bool, text: String)?
     @State private var testingConnection = false
+    /// The News Feeds box's text as typed. Parsing it into `newsFeeds` drops
+    /// blank lines and edge spaces, so the box can't be bound to that list
+    /// directly: a new line or a space after "NPR" would vanish as it's typed.
+    @State private var newsFeedsText = ""
 
     var body: some View {
         @Bindable var station = station
@@ -41,6 +45,7 @@ struct AntennaHeadRadioView: View {
         }
         .onAppear {
             musicFromAnotherMac = !(station.settings.musicHost ?? "").isEmpty
+            newsFeedsText = station.settings.newsFeeds.joined(separator: "\n")
             loadRemotePassword()
             if musicFromAnotherMac { macBrowser.start() }
             refreshMusicLists()
@@ -266,12 +271,14 @@ struct AntennaHeadRadioView: View {
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text("News Feeds (RSS or Atom, one per line; put the name to credit first: NPR | https://…)")
-                TextEditor(text: Binding(
-                    get: { s.wrappedValue.newsFeeds.joined(separator: "\n") },
-                    set: { s.wrappedValue.newsFeeds = $0.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) } }
-                ))
-                .font(.system(.body, design: .monospaced))
-                .frame(minHeight: 60)
+                TextEditor(text: $newsFeedsText)
+                    .font(.system(.body, design: .monospaced))
+                    .frame(minHeight: 60)
+                    .onChange(of: newsFeedsText) { _, text in
+                        s.wrappedValue.newsFeeds = text.split(whereSeparator: \.isNewline)
+                            .map { $0.trimmingCharacters(in: .whitespaces) }
+                            .filter { !$0.isEmpty }
+                    }
             }
         } header: {
             Text("News & Weather")
@@ -356,7 +363,10 @@ struct AntennaHeadRadioView: View {
                 LabeledContent("Source Name in AntennaHead") {
                     TextField("", text: s.antennaHeadSourceName).frame(width: 180)
                 }
-                Button("Restore Defaults", role: .destructive) { s.wrappedValue = .defaults }
+                Button("Restore Defaults", role: .destructive) {
+                    s.wrappedValue = .defaults
+                    newsFeedsText = StationConfig.defaults.newsFeeds.joined(separator: "\n")
+                }
             }
         }
     }
