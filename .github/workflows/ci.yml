@@ -54,6 +54,14 @@ jobs:
           path: SharedLogging
           token: ${{ secrets.CI_SIBLING_TOKEN || github.token }}
 
+      - name: Check out StationDirector (local package, StationKit)
+        uses: actions/checkout@v4
+        with:
+          repository: dsward2/StationDirector
+          ref: main
+          path: StationDirector
+          token: ${{ secrets.CI_SIBLING_TOKEN || github.token }}
+
       # The "Embed AirPlayReceiver Helper" build phase copies vendored binaries
       # (sox, stereodemux and their dylib closure) from the sibling AntennaHead
       # checkout into the app bundle.
