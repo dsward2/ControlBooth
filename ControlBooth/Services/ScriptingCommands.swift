@@ -271,6 +271,16 @@ nonisolated final class StartRadioCommand: NSScriptCommand {
     }
 }
 
+@objc(SkipRadioSongCommand)
+nonisolated final class SkipRadioSongCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        MainActor.assumeIsolated {
+            radioStation(reportingTo: self)?.skip()
+            return nil
+        }
+    }
+}
+
 @objc(StopRadioCommand)
 nonisolated final class StopRadioCommand: NSScriptCommand {
     override func performDefaultImplementation() -> Any? {

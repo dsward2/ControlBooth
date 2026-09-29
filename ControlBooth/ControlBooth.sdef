@@ -111,6 +111,12 @@
             <access-group identifier="com.dsward.ControlBooth.pipelines"/>
         </command>
 
+        <command name="skip radio song" code="CBthRdSk"
+                 description="Skip AntennaHead Radio's current song: a gong, a fade, then the next song (or a segment waiting for the song to end). Does nothing unless the station is on air between segments with a song playing and the announcer quiet.">
+            <cocoa class="SkipRadioSongCommand"/>
+            <access-group identifier="com.dsward.ControlBooth.pipelines"/>
+        </command>
+
         <command name="stop radio" code="CBthRdOf"
                  description="Take AntennaHead Radio off the air.">
             <cocoa class="StopRadioCommand"/>

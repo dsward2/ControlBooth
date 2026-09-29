@@ -15,7 +15,7 @@ struct ScheduleListView: View {
                     .tag(event.id ?? -1)
             }
         }
-        .navigationTitle("Schedule")
+        .navigationTitle("Recording Schedule")
         .toolbar {
             ToolbarItem {
                 Button {

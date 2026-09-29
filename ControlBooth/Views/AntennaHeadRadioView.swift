@@ -65,6 +65,9 @@ struct AntennaHeadRadioView: View {
                     .font(.headline)
                 Spacer()
                 if station.isOnAir {
+                    Button("Skip Song", systemImage: "forward.end.fill") { station.skip() }
+                        .disabled(station.director?.canSkip != true)
+                        .help("Ring the gong, fade out this song and fade in the next one — or go straight to a news or weather segment that's waiting for the song to end.")
                     Button("Stop", systemImage: "stop.fill") { station.stop() }
                         .disabled(station.director?.phase == .stopping)
                 } else {
