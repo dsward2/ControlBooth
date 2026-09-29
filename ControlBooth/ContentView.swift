@@ -41,7 +41,7 @@ struct ContentView: View {
                     )
                 }
             }
-            .tabItem { Label("Schedule", systemImage: "calendar.clock") }
+            .tabItem { Label("Recording Schedule", systemImage: "calendar.clock") }
 
             AirPlaySettingsView(settings: airPlaySettingsStore.settings)
                 .id(airPlaySettingsStore.settings)
