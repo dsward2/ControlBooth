@@ -130,6 +130,11 @@ final class RadioStation {
         director?.fire(segment)
     }
 
+    /// Gong, fade out, next song (or the segment waiting for the song to end).
+    func skip() {
+        director?.skip()
+    }
+
     /// The music source for `config` (defaults to the saved settings), with
     /// the remote Mac's password from the Keychain.
     func musicTarget(for config: StationConfig? = nil) -> MusicTarget {
@@ -164,7 +169,7 @@ final class RadioStation {
         switch director?.phase {
         case nil, .stopped?: return "Off the Air"
         case .starting?: return "Starting…"
-        case .onAir?: return "On the Air"
+        case .onAir?: return director?.isSkipping == true ? "On the Air: Skipping…" : "On the Air"
         case .segment(let segment)?: return "On the Air: \(AntennaHeadRadioView.title(segment))"
         case .stopping?: return "Stopping…"
         }
@@ -180,6 +185,8 @@ final class RadioStation {
         var lastError: String?
         /// The source name the station announces to AntennaHead under.
         var sourceName: String
+        /// Whether "skip song" would do anything right now.
+        var canSkip: Bool?
     }
 
     func remoteStatus() -> RemoteStatus {
@@ -193,7 +200,8 @@ final class RadioStation {
         }
         return RemoteStatus(phase: phase, statusText: statusText, nowPlaying: director?.nowPlaying,
                             lastError: lastError,
-                            sourceName: (runningSettings ?? settings).antennaHeadSourceName)
+                            sourceName: (runningSettings ?? settings).antennaHeadSourceName,
+                            canSkip: director?.canSkip ?? false)
     }
 
     func remoteStatusJSON() -> String {
