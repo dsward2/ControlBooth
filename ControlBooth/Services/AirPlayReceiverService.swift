@@ -184,7 +184,17 @@ final class AirPlayReceiverService {
         stationPort = nil
         appliedIdentity = nil
         announcedToAntennaHead = false
-        if let settings = settingsStore?.settings {
+        if let store = settingsStore {
+            var settings = store.settings
+            // Don't resume relaying to AntennaHead: re-announcing "AirPlay
+            // Receiver" here raced the station's own Stop (AntennaHead ignores
+            // a Stop naming a source that is no longer active) and left
+            // AntennaHead on a silent AirPlay source instead of its filler.
+            // Fall back to "Receiving"; the user picks Relayed again to relay.
+            if settings.relayEnabled {
+                settings.relayEnabled = false
+                persist(settings, into: store)
+            }
             applySettings(settings)
         } else {
             stop()
