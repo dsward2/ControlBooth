@@ -52,6 +52,15 @@ struct ControlBoothApp: App {
             CommandGroup(replacing: .appInfo) {
                 OpenAboutWindowButton()
             }
+            // The default Help item would look for a help book, and there isn't
+            // one; the project website is the documentation.
+            CommandGroup(replacing: .help) {
+                Button("ControlBooth Help") {
+                    if let url = URL(string: "https://antennahead-app.github.io") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+            }
             // Folded into the standard Window menu (rather than a separate
             // custom menu) so there's only ever one "Window" menu. No custom
             // "Logs" entry here: SwiftUI already lists every declared Window
