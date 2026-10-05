@@ -81,6 +81,17 @@
             </parameter>
         </command>
 
+        <command name="set dsd-neo configuration" code="CBthDnCf"
+                 description="Set the dsd-neo Scanner to a saved configuration (AWIN, CWIN, …) and, optionally, one of its control channels. Relaunches dsd-neo if it is running.">
+            <cocoa class="DsdNeoSetConfigurationCommand"/>
+            <access-group identifier="com.dsward.ControlBooth.pipelines"/>
+            <direct-parameter type="text" description="The configuration's ID, from dsd-neo status."/>
+            <parameter name="control channel" code="DnCh" type="integer" optional="yes"
+                       description="The control channel in Hz; one of the configuration's channels.">
+                <cocoa key="controlChannel"/>
+            </parameter>
+        </command>
+
         <command name="skip dsd-neo call" code="CBthDnSk"
                  description="Leave the call the dsd-neo Scanner is following and return to the control channel.">
             <cocoa class="DsdNeoSkipCommand"/>

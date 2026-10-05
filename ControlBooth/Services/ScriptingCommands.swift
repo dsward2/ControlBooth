@@ -210,6 +210,29 @@ nonisolated final class DsdNeoSetModeCommand: NSScriptCommand {
     }
 }
 
+@objc(DsdNeoSetConfigurationCommand)
+nonisolated final class DsdNeoSetConfigurationCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        MainActor.assumeIsolated {
+            guard let (_, runner) = scriptingServices(reportingTo: self) else {
+                return nil
+            }
+            guard let id = directParameter as? String else {
+                scriptErrorNumber = NSArgumentsWrongScriptError
+                scriptErrorString = "A configuration ID (from dsd-neo status) is required."
+                return nil
+            }
+            let hz = (evaluatedArguments?["controlChannel"] as? NSNumber)?.intValue
+            do {
+                try DsdNeoRemoteControl.setConfiguration(id: id, controlChannelHz: hz, runner: runner)
+            } catch {
+                reportFailure(error, to: self)
+            }
+            return nil
+        }
+    }
+}
+
 @objc(DsdNeoSkipCommand)
 nonisolated final class DsdNeoSkipCommand: NSScriptCommand {
     override func performDefaultImplementation() -> Any? {

@@ -29,6 +29,20 @@ enum DsdNeoRemoteControl {
         var name: String
     }
 
+    /// A configuration as the remote clients list it.
+    struct ConfigurationStatus: Codable, Equatable {
+        var id: String
+        var name: String
+        var controlChannels: [Channel]
+        /// The control channel the configuration is set to.
+        var selectedControlChannelHz: Int
+
+        struct Channel: Codable, Equatable {
+            var hz: Int
+            var label: String
+        }
+    }
+
     struct Status: Codable, Equatable {
         var installed: Bool
         var configured: Bool
@@ -54,6 +68,10 @@ enum DsdNeoRemoteControl {
         var alwaysAllowed: [Talkgroup]
         /// Heard recently, newest first, for picking a talkgroup to hold or lock out.
         var recent: [Talkgroup]
+        /// The saved configurations (AWIN, CWIN, …), and the one the scanner
+        /// is set to.
+        var configurations: [ConfigurationStatus]
+        var activeConfigurationID: String?
     }
 
     static let recentLimit = 20
@@ -61,6 +79,7 @@ enum DsdNeoRemoteControl {
     static func status(store: PipelineStore, runner: PipelineRunner) -> Status {
         let scanner = runner.dsdNeoScanner
         let settings = scanner.runningSettings ?? DsdNeoScannerSettings.load()
+        let configurationSet = DsdNeoConfigurationSet.load()
         let saved = DsdNeoScanner.savedState(for: settings)
         let ledger = scanner.isActive ? scanner.ledger : saved.ledger
         let overrides = scanner.isActive ? scanner.overrides : saved.overrides
@@ -101,7 +120,14 @@ enum DsdNeoRemoteControl {
                       lockedOut: entries(overrides.lockedOut),
                       encryptedLockedOut: entries(encrypted),
                       alwaysAllowed: entries(overrides.alwaysAllowed),
-                      recent: Array(recent))
+                      recent: Array(recent),
+                      configurations: configurationSet.configurations.map { configuration in
+                          ConfigurationStatus(
+                              id: configuration.id.uuidString, name: configuration.name,
+                              controlChannels: configuration.controlChannels.map { .init(hz: $0.hz, label: $0.label) },
+                              selectedControlChannelHz: configuration.selectedControlChannelHz)
+                      },
+                      activeConfigurationID: configurationSet.activeID?.uuidString)
     }
 
     static func statusJSON(store: PipelineStore, runner: PipelineRunner) -> String {
@@ -135,6 +161,26 @@ enum DsdNeoRemoteControl {
         }
         settings.followMode = mode
         try runner.applyDsdNeoSettings(settings)
+        NotificationCenter.default.post(name: settingsChangedNotification, object: nil)
+    }
+
+    /// Sets the scanner to configuration `id` — its talkgroup list, dongle
+    /// and, when `controlChannelHz` is given (it must be one of the
+    /// configuration's channels), that control channel; otherwise the one the
+    /// configuration last used. While running, dsd-neo is relaunched on it.
+    static func setConfiguration(id: String, controlChannelHz: Int?, runner: PipelineRunner) throws {
+        guard let uuid = UUID(uuidString: id) else {
+            throw RemoteError.badArgument("“\(id)” isn't a configuration ID.")
+        }
+        let set = DsdNeoConfigurationSet.load()
+        guard let configuration = set.configuration(id: uuid) else {
+            throw RemoteError.badArgument("There is no configuration with that ID.")
+        }
+        guard let chosen = set.selecting(uuid, controlChannelHz: controlChannelHz, from: DsdNeoScannerSettings.load()) else {
+            throw RemoteError.badArgument("\(configuration.name) has no control channel at that frequency.")
+        }
+        chosen.set.save()
+        try runner.applyDsdNeoSettings(chosen.settings)
         NotificationCenter.default.post(name: settingsChangedNotification, object: nil)
     }
 
