@@ -69,6 +69,9 @@ struct ControlBoothApp: App {
             CommandGroup(after: .windowList) {
                 RevealRecordingsFolderButton()
             }
+            CommandMenu("Commands") {
+                StopPipelineMenuButton(store: store, runner: runner)
+            }
         }
 
         Window("About ControlBooth", id: "about") {
@@ -101,6 +104,25 @@ private struct OpenAboutWindowButton: View {
         Button("About ControlBooth") {
             openWindow(id: "about")
         }
+    }
+}
+
+/// Commands > Stop Pipeline (⌘.) — the same as a pipeline row's Stop button,
+/// for every running pipeline, so AntennaHead is told and returns to its filler.
+private struct StopPipelineMenuButton: View {
+    let store: PipelineStore
+    let runner: PipelineRunner
+
+    private var running: [Pipeline] { store.pipelines.filter { runner.isRunning($0) } }
+
+    var body: some View {
+        Button("Stop Pipeline") {
+            for pipeline in running {
+                runner.stopAnnouncingToAntennaHead(pipeline)
+            }
+        }
+        .keyboardShortcut(".", modifiers: .command)
+        .disabled(running.isEmpty)
     }
 }
 
