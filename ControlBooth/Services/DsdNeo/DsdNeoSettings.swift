@@ -127,6 +127,11 @@ nonisolated struct DsdNeoScannerSettings: Codable, Equatable {
         guard let data = try? JSONEncoder().encode(self),
               let json = String(data: data, encoding: .utf8) else { return }
         defaults.set(json, forKey: Self.defaultsKey)
+        // Keep the active configuration (AWIN, CWIN, …) in step with what
+        // the scanner is now set to.
+        var configurations = DsdNeoConfigurationSet.load(settings: self, from: defaults)
+        configurations.record(self)
+        configurations.save(to: defaults)
     }
 
     /// dsd-neo's command line for USB device `rtlIndex`: P25 trunk following

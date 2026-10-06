@@ -12,6 +12,10 @@ struct DsdNeoScannerView: View {
     @State private var draft = DsdNeoScannerSettings.load()
     @State private var saved = DsdNeoScannerSettings.load()
     @State private var controlChannelMHz = ""
+    /// The saved configurations (AWIN, CWIN, …) as edited here; saved with
+    /// the settings.
+    @State private var configurations = DsdNeoConfigurationSet.load()
+    @State private var showingConfigurations = false
     @State private var extraArgumentsText = ""
     @State private var devices: [String] = []
     @State private var installation = DsdNeoInstallation.detect()
@@ -42,11 +46,19 @@ struct DsdNeoScannerView: View {
         return runner.isRunning(pipeline) && scanner.isActive
     }
 
+    /// The scanner fills in each configuration's network as it learns it; that
+    /// isn't an edit.
+    private static func withoutNetworks(_ set: DsdNeoConfigurationSet) -> DsdNeoConfigurationSet {
+        var set = set
+        for index in set.configurations.indices { set.configurations[index].systemID = nil }
+        return set
+    }
+
     private var hasChanges: Bool {
         var a = editedSettings, b = saved
         a.systemID = nil
         b.systemID = nil
-        return a != b
+        return a != b || Self.withoutNetworks(configurations) != Self.withoutNetworks(DsdNeoConfigurationSet.load())
     }
 
     var body: some View {
@@ -86,6 +98,9 @@ struct DsdNeoScannerView: View {
         .onChange(of: scanner.isActive) { savedState = DsdNeoScanner.savedState(for: DsdNeoScannerSettings.load()) }
         .onReceive(NotificationCenter.default.publisher(for: DsdNeoRemoteControl.settingsChangedNotification)) { _ in
             remoteSettingsChanged()
+        }
+        .sheet(isPresented: $showingConfigurations) {
+            DsdNeoConfigurationsSheet(store: $configurations, current: editedSettings)
         }
         .alert("dsd-neo Scanner", isPresented: Binding(get: { errorMessage != nil },
                                                         set: { if !$0 { errorMessage = nil } })) {
@@ -187,6 +202,32 @@ struct DsdNeoScannerView: View {
         Form {
             if let problem = installationProblem {
                 Section { problem }
+            }
+            Section {
+                Picker("Configuration", selection: Binding(get: { configurations.activeID },
+                                                           set: { if let id = $0 { chooseConfiguration(id) } })) {
+                    ForEach(configurations.configurations) { Text($0.name).tag(Optional($0.id)) }
+                }
+                if let active = configurations.active {
+                    Picker("Control Channel", selection: Binding(
+                        get: { Self.hertz(fromMegahertz: controlChannelMHz) ?? 0 },
+                        set: { controlChannelMHz = DsdNeoConfiguration.megahertzText($0) })) {
+                        ForEach(active.controlChannels) { Text($0.title).tag($0.hz) }
+                        if let hz = Self.hertz(fromMegahertz: controlChannelMHz), active.channel(at: hz) == nil {
+                            Text(DsdNeoConfiguration.megahertzText(hz) + " MHz — Other").tag(hz)
+                        }
+                    }
+                }
+                HStack {
+                    Spacer()
+                    Button("Manage Configurations…") { showingConfigurations = true }
+                        .controlSize(.small)
+                }
+            } header: {
+                Text("Configuration")
+            } footer: {
+                Text("Choosing a configuration sets the control channel, talkgroup list and RTL-SDR below. Click Save & Apply to switch.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             Section("System") {
                 TextField("Control Channel (MHz)", text: $controlChannelMHz, prompt: Text("853.1875"))
@@ -459,12 +500,14 @@ struct DsdNeoScannerView: View {
         }
         draft = settings
         do {
+            configurations.save()
             if apply {
                 try runner.applyDsdNeoSettings(settings)
             } else {
                 settings.save()
             }
             saved = settings
+            configurations = DsdNeoConfigurationSet.load()   // as recorded by the save
             return true
         } catch {
             saved = DsdNeoScannerSettings.load()
@@ -473,7 +516,18 @@ struct DsdNeoScannerView: View {
         }
     }
 
+    /// Fills the form with configuration `id`'s control channel, talkgroup
+    /// list and RTL-SDR (applied by Save).
+    private func chooseConfiguration(_ id: UUID) {
+        guard let chosen = configurations.selecting(id, from: editedSettings) else { return }
+        configurations = chosen.set
+        draft = chosen.settings
+        controlChannelMHz = chosen.settings.controlChannelHz > 0
+            ? DsdNeoConfiguration.megahertzText(chosen.settings.controlChannelHz) : ""
+    }
+
     private func revert() {
+        configurations = DsdNeoConfigurationSet.load()
         draft = saved
         controlChannelMHz = saved.controlChannelHz > 0
             ? DsdNeoScannerSettings.megahertz(saved.controlChannelHz).dropLast().description : ""
@@ -485,6 +539,7 @@ struct DsdNeoScannerView: View {
     private func remoteSettingsChanged() {
         let stored = DsdNeoScannerSettings.load()
         savedState = DsdNeoScanner.savedState(for: stored)
+        configurations = DsdNeoConfigurationSet.load()
         if hasChanges {
             draft.followMode = stored.followMode
             draft.holdTalkgroup = stored.holdTalkgroup
