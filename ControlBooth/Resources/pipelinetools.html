@@ -155,7 +155,7 @@ stalled source can't freeze the pipeline.</p>
   <tr><td><code>--exit-with-parent</code></td><td>Exit if the app dies.</td></tr>
 </table>
 <p>Control commands (one line per UDP datagram, e.g.
-<code>echo "ratio 0.25" | nc -u -w1 127.0.0.1 6031</code>):</p>
+<code>echo "ratio 0.25" | nc -u -w1 127.0.0.1 6035</code>):</p>
 <table>
   <tr><th>Command</th><th>Effect</th></tr>
   <tr><td><code>ratio &lt;0..1&gt;</code></td><td>Crossfade inputs 0/1.</td></tr>
@@ -452,8 +452,8 @@ capture, with live control on UDP 6040):</p>
 <p>Stage 1 mixes two sources; stdin isn't available in stage 1, so both come in by UDP.
 Run one pipeline's audio into UDP 6032 and another's speech into UDP 6033 (each ends with
 <code>PCMUDPSender</code> pointed at that port), then a pipeline whose single stage is:</p>
-<pre><code>PCMMixer  --input | udp:6032 | --input | udp:6033 | --control-port | 6031 | --ratio | 0.2 | --exit-with-parent</code></pre>
-<p>Adjust the blend live: <code>echo "ratio 0.5" | nc -u -w1 127.0.0.1 6031</code>.</p>
+<pre><code>PCMMixer  --input | udp:6032 | --input | udp:6033 | --control-port | 6035 | --ratio | 0.2 | --exit-with-parent</code></pre>
+<p>Adjust the blend live: <code>echo "ratio 0.5" | nc -u -w1 127.0.0.1 6035</code>.</p>
 
 <div class="note">
 <strong>Port picking:</strong> a pipeline's Destination Port defaults to <code>6019</code>
