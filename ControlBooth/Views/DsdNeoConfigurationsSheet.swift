@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Add, rename, duplicate, delete and edit the control channels of the
 /// scanner's configurations (AWIN, CWIN, …). Edits the in-memory set the
@@ -11,6 +12,7 @@ struct DsdNeoConfigurationsSheet: View {
 
     @State private var selection: UUID?
     @State private var channelsText = ""
+    @State private var message: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -33,6 +35,11 @@ struct DsdNeoConfigurationsSheet: View {
                     .disabled(selected == nil)
                 Button("Delete", systemImage: "minus") { delete() }
                     .disabled(selected == nil || store.configurations.count < 2)
+                Divider().frame(height: 16)
+                Button("Import…", systemImage: "square.and.arrow.down") { importFile() }
+                    .help("Add configurations from a file exported by ControlBooth, including their talkgroup lists.")
+                Button("Export…", systemImage: "square.and.arrow.up") { exportFile() }
+                    .help("Save all configurations, with their talkgroup lists, to one file.")
                 Spacer()
                 Button("Done") { dismiss() }
                     .keyboardShortcut(.defaultAction)
@@ -45,6 +52,9 @@ struct DsdNeoConfigurationsSheet: View {
             loadChannelsText()
         }
         .onChange(of: selection) { loadChannelsText() }
+        .alert("dsd-neo Configurations", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
+            Button("OK") { message = nil }
+        } message: { Text(message ?? "") }
     }
 
     private var selected: DsdNeoConfiguration? {
@@ -129,5 +139,50 @@ struct DsdNeoConfigurationsSheet: View {
         let removed = store.configurations.remove(at: index)
         if store.activeID == removed.id { store.activeID = store.configurations.first?.id }
         selection = store.configurations[min(index, store.configurations.count - 1)].id
+    }
+
+    // MARK: Export / import
+
+    private func exportFile() {
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "dsd-neo-configurations.json"
+        panel.allowedContentTypes = [.json]
+        panel.message = "Saves every configuration with its talkgroup list, to move to another Mac or keep as a backup."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            let data = try DsdNeoConfigurationExchange.export(store) { path in
+                DsdNeoScannerView.readText(URL(fileURLWithPath: path))
+            }
+            try data.write(to: url, options: .atomic)
+            message = "Exported \(store.configurations.count) configuration(s) to \(url.lastPathComponent)."
+        } catch {
+            message = "Couldn't export: \(error)"
+        }
+    }
+
+    private func importFile() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        panel.message = "Choose a dsd-neo configurations file exported by ControlBooth."
+        panel.prompt = "Import"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            let data = try Data(contentsOf: url)
+            let folder = DsdNeoScanner.directory.appendingPathComponent("lists", isDirectory: true)
+            let result = try DsdNeoConfigurationExchange.importing(data, into: store, listsFolder: folder)
+            store = result.set
+            if let first = result.report.added.first,
+               let added = store.configurations.first(where: { $0.name == first }) { selection = added.id }
+            var text = "Imported \(result.report.added.count) configuration(s)"
+            if result.report.listsWritten > 0 { text += " and \(result.report.listsWritten) talkgroup list(s)" }
+            text += "."
+            if !result.report.renamed.isEmpty {
+                text += " Renamed to avoid clashes: \(result.report.renamed.joined(separator: ", "))."
+            }
+            message = text + " Existing configurations were not changed."
+        } catch {
+            message = "Couldn't import: \(error)"
+        }
     }
 }
