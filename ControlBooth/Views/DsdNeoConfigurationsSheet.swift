@@ -70,15 +70,22 @@ struct DsdNeoConfigurationsSheet: View {
         if let index = selectedIndex {
             Form {
                 TextField("Name", text: $store.configurations[index].name)
+                Picker("System Type", selection: Binding(
+                    get: { store.configurations[index].effectiveSystemType },
+                    set: { store.configurations[index].systemType = $0 })) {
+                    ForEach(DsdNeoSystemType.allCases) { Text($0.title).tag($0) }
+                }
                 Section {
                     TextEditor(text: $channelsText)
                         .font(.body.monospaced())
                         .frame(minHeight: 130)
                         .onChange(of: channelsText) { applyChannelsText(at: index) }
                 } header: {
-                    Text("Control Channels")
+                    Text(store.configurations[index].effectiveSystemType.isTrunked ? "Control Channels" : "Channels")
                 } footer: {
-                    Text("One per line: the frequency in MHz, then an optional site name — e.g. 854.3625 Clearwell Road.")
+                    Text(store.configurations[index].effectiveSystemType.isTrunked
+                         ? "One per line: the frequency in MHz, then an optional site name — e.g. 854.3625 Clearwell Road."
+                         : "One per line: the frequency in MHz, then an optional name — e.g. 467.2125 UCA Maintenance 1. The scanner decodes one at a time.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 if !store.configurations[index].groupListPath.isEmpty {
@@ -120,7 +127,8 @@ struct DsdNeoConfigurationsSheet: View {
             controlChannels: current.controlChannelHz > 0
                 ? [DsdNeoControlChannel(hz: current.controlChannelHz, label: "")] : [],
             selectedControlChannelHz: current.controlChannelHz,
-            groupListPath: current.groupListPath, rtlSerial: current.rtlSerial)
+            groupListPath: current.groupListPath, rtlSerial: current.rtlSerial,
+            systemType: current.systemType)
         store.configurations.append(configuration)
         selection = configuration.id
     }

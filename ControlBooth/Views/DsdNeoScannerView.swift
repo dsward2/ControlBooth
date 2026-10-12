@@ -35,6 +35,11 @@ struct DsdNeoScannerView: View {
         var id: String { rawValue }
     }
 
+    /// Sites are a trunked-system idea; a conventional channel has none.
+    private var panes: [Pane] {
+        draft.effectiveSystemType.isTrunked ? Pane.allCases : Pane.allCases.filter { $0 != .sites }
+    }
+
     private var scanner: DsdNeoScanner { runner.dsdNeoScanner }
 
     private var scannerPipeline: Pipeline? {
@@ -70,7 +75,7 @@ struct DsdNeoScannerView: View {
                     .frame(minWidth: 300, idealWidth: 340, maxWidth: 420)
                 VStack(spacing: 0) {
                     Picker("View", selection: $pane) {
-                        ForEach(Pane.allCases) { Text($0.rawValue).tag($0) }
+                        ForEach(panes) { Text($0.rawValue).tag($0) }
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
@@ -95,6 +100,7 @@ struct DsdNeoScannerView: View {
             savedState = DsdNeoScanner.savedState(for: DsdNeoScannerSettings.load())
         }
         .onChange(of: draft.groupListPath) { reloadGroupList() }
+        .onChange(of: draft.systemType) { if !panes.contains(pane) { pane = .terminal } }
         .onChange(of: scanner.isActive) { savedState = DsdNeoScanner.savedState(for: DsdNeoScannerSettings.load()) }
         .onReceive(NotificationCenter.default.publisher(for: DsdNeoRemoteControl.settingsChangedNotification)) { _ in
             remoteSettingsChanged()
@@ -209,7 +215,7 @@ struct DsdNeoScannerView: View {
                     ForEach(configurations.configurations) { Text($0.name).tag(Optional($0.id)) }
                 }
                 if let active = configurations.active {
-                    Picker("Control Channel", selection: Binding(
+                    Picker(draft.effectiveSystemType.channelTitle, selection: Binding(
                         get: { Self.hertz(fromMegahertz: controlChannelMHz) ?? 0 },
                         set: { controlChannelMHz = DsdNeoConfiguration.megahertzText($0) })) {
                         ForEach(active.controlChannels) { Text($0.title).tag($0.hz) }
@@ -226,11 +232,16 @@ struct DsdNeoScannerView: View {
             } header: {
                 Text("Configuration")
             } footer: {
-                Text("Choosing a configuration sets the control channel, talkgroup list and RTL-SDR below. Click Save & Apply to switch.")
+                Text("Choosing a configuration sets the system type, channel, talkgroup list and RTL-SDR below. Click Save & Apply to switch.")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("System") {
-                TextField("Control Channel (MHz)", text: $controlChannelMHz, prompt: Text("853.1875"))
+                Picker("System Type", selection: Binding(get: { draft.effectiveSystemType },
+                                                         set: { draft.systemType = $0 })) {
+                    ForEach(DsdNeoSystemType.allCases) { Text($0.title).tag($0) }
+                }
+                TextField("\(draft.effectiveSystemType.channelTitle) (MHz)", text: $controlChannelMHz,
+                          prompt: Text(draft.effectiveSystemType.isTrunked ? "853.1875" : "467.2125"))
                 LabeledContent("Talkgroup List") {
                     HStack {
                         Text(draft.groupListPath.isEmpty ? "None"
@@ -248,21 +259,23 @@ struct DsdNeoScannerView: View {
                 Toggle("Lock Out Encrypted Talkgroups", isOn: $draft.encryptionLockout)
                     .help("Skip encrypted calls, and permanently lock out talkgroups that only ever carry encrypted calls.")
             }
-            Section {
-                Picker("Follow", selection: Binding(get: { draft.followMode ?? .scanAll },
-                                                    set: { draft.followMode = $0 })) {
-                    ForEach(DsdNeoFollowMode.allCases) { Text($0.title).tag($0) }
+            if draft.effectiveSystemType.isTrunked {
+                Section {
+                    Picker("Follow", selection: Binding(get: { draft.followMode ?? .scanAll },
+                                                        set: { draft.followMode = $0 })) {
+                        ForEach(DsdNeoFollowMode.allCases) { Text($0.title).tag($0) }
+                    }
+                    if draft.followMode == .hold {
+                        TextField("Talkgroup", value: $draft.holdTalkgroup, format: .number.grouping(.never),
+                                  prompt: Text(scanner.nowPlayingTalkgroup.map(String.init) ?? "e.g. 3"))
+                    }
+                } header: {
+                    Text("Calls")
+                } footer: {
+                    Text(followFooter).font(.caption).foregroundStyle(.secondary)
                 }
-                if draft.followMode == .hold {
-                    TextField("Talkgroup", value: $draft.holdTalkgroup, format: .number.grouping(.never),
-                              prompt: Text(scanner.nowPlayingTalkgroup.map(String.init) ?? "e.g. 3"))
-                }
-            } header: {
-                Text("Calls")
-            } footer: {
-                Text(followFooter).font(.caption).foregroundStyle(.secondary)
             }
-            Section("RTL-SDR") {
+            Section {
                 Picker("Device", selection: $draft.rtlSerial) {
                     if draft.rtlSerial.isEmpty { Text("Choose…").tag("") }
                     ForEach(deviceChoices, id: \.self) { serial in
@@ -278,6 +291,13 @@ struct DsdNeoScannerView: View {
                 TextField("Frequency Correction (ppm)", value: $draft.ppm, format: .number)
                 Picker("Bandwidth", selection: $draft.bandwidthKHz) {
                     ForEach([12, 24, 48], id: \.self) { Text("\($0) kHz").tag($0) }
+                }
+            } header: {
+                Text("RTL-SDR")
+            } footer: {
+                if !draft.effectiveSystemType.isTrunked {
+                    Text("A 12.5 kHz digital channel needs a bandwidth of at least 16 kHz.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
             }
             Section {

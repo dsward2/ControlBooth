@@ -18,6 +18,11 @@ nonisolated enum DsdNeoLogEvent: Equatable {
     /// A P25 Phase 1 or Phase 2 frame synced — the receiver is decoding
     /// something. The scanner's sign of life.
     case p25Sync
+    /// A DMR frame synced (`Sync: +DMR`) — the DMR counterpart of `p25Sync`.
+    /// A conventional channel only produces these while someone transmits.
+    case dmrSync
+    /// A DMR call dsd-neo is decoding on a slot ("SLOT 1 TGT=911 SRC=2262 Group Call").
+    case dmrCall(slot: Int, talkgroup: Int, source: Int, encrypted: Bool)
     /// The RTL-SDR dsd-neo actually opened.
     case selectedDevice(index: Int, serial: String)
     /// The monitored site's own RFSS Status Broadcast (system ID in hex).
@@ -60,6 +65,11 @@ nonisolated enum DsdNeoLogParser {
     // "P25 FREQ: iden=0 type=1 ch=0x009B -> 851.975000 MHz (base5=…)"
     private static let channelFrequency = try! NSRegularExpression(
         pattern: #"P25 FREQ: (?:map|iden=\d+ type=\d+) ch=0x([0-9A-Fa-f]+) -> ([0-9.]+) MHz"#)
+    // "SLOT 1 TGT=911 SRC=2262 Group Call  " (verified against DSD-neo v2.8.1;
+    // how it marks an encrypted call is not, so any ENC/Encrypted word is taken as one)
+    private static let dmrCall = try! NSRegularExpression(
+        pattern: #"SLOT ([12]) TGT=(\d+) SRC=(\d+)"#)
+    private static let encryptedWord = try! NSRegularExpression(pattern: #"\b(?:ENC|Encrypted)\b"#)
     // "Sync: +P25p1 WACN: BEE00; SYS: 188; NAC/CC: 18C; RFSS: 002; Site: 038;"
     private static let network = try! NSRegularExpression(pattern: #"WACN: ([0-9A-Fa-f]+); SYS: ([0-9A-Fa-f]+);"#)
 
@@ -70,6 +80,12 @@ nonisolated enum DsdNeoLogParser {
         // "[P25 SM] cc-lost"; count only the second so one loss is one event.
         if line.trimmingCharacters(in: .whitespaces) == "[P25 SM] cc-lost" { return .controlChannelLost }
         if line.contains("Sync: +P25p1") || line.contains("Sync: +P25p2") { return .p25Sync }
+        if line.contains("Sync: +DMR") { return .dmrSync }
+        if line.contains("SLOT "), let m = firstMatch(dmrCall, line),
+           let slot = Int(m[1]), let tg = Int(m[2]), let src = Int(m[3]) {
+            return .dmrCall(slot: slot, talkgroup: tg, source: src,
+                            encrypted: firstMatch(encryptedWord, line) != nil)
+        }
         if let m = firstMatch(grant, line), let svc = Int(m[1], radix: 16), let tg = Int(m[2]) {
             return .grant(talkgroup: tg, encrypted: svc & 0x40 != 0)
         }

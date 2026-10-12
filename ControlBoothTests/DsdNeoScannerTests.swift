@@ -312,3 +312,103 @@ struct DsdNeoScannerViewTests {
         #expect(DsdNeoScannerSettings.megahertz(853_187_500).dropLast() == "853.1875")
     }
 }
+
+struct DsdNeoDmrTests {
+
+    private var uca: DsdNeoScannerSettings {
+        var settings = DsdNeoScannerSettings()
+        settings.systemType = .dmrConventional
+        settings.rtlSerial = "00000360"
+        settings.controlChannelHz = 467_212_500
+        settings.gainDB = 40
+        return settings
+    }
+
+    @Test func dmrCommandLine() {
+        let args = uca.arguments(rtlIndex: 0, groupListPath: nil, eventLogPath: "/tmp/events.log")
+        #expect(args == ["-fs", "-i", "rtl:0:467.2125M:40:0:24:0:2", "--enc-lockout",
+                         "-o", "udp:127.0.0.1:23480", "-J", "/tmp/events.log",
+                         "--frontend", "terminal"])
+    }
+
+    @Test func dmrIgnoresTheFollowMode() {
+        var settings = uca
+        settings.followMode = .hold
+        settings.holdTalkgroup = 911
+        #expect(settings.effectiveFollowMode == .scanAll)
+        let args = settings.arguments(rtlIndex: 0, groupListPath: "/tmp/g.csv", eventLogPath: "/e")
+        #expect(!args.contains("-I"))
+        #expect(!args.contains("-W"))
+        #expect(!args.contains("-T"))
+        #expect(args.contains("-G"))
+        settings.followMode = .allowListOnly
+        #expect(!settings.arguments(rtlIndex: 0, groupListPath: nil, eventLogPath: "/e").contains("-W"))
+    }
+
+    @Test func p25IsUnchangedAndTheDefault() {
+        var settings = DsdNeoScannerSettings()
+        settings.controlChannelHz = 853_187_500
+        #expect(settings.effectiveSystemType == .p25Trunked)
+        let args = settings.arguments(rtlIndex: 1, groupListPath: nil, eventLogPath: "/e")
+        #expect(args.prefix(4) == ["-ft", "-i", "rtl:1:853.1875M:48:0:24:0:2", "-T"])
+        settings.systemType = .p25Trunked
+        #expect(settings.arguments(rtlIndex: 1, groupListPath: nil, eventLogPath: "/e") == args)
+    }
+
+    @Test func systemKeys() {
+        var settings = uca
+        #expect(settings.systemKey == "dmr-467212500")
+        settings.systemType = nil
+        #expect(settings.systemKey == "cc-467212500")      // P25 keys are what they always were
+        settings.systemID = "BEE00-188"
+        #expect(settings.systemKey == "sys-BEE00-188")
+    }
+
+    @Test func parsesDmrSyncAndCalls() {
+        #expect(DsdNeoLogParser.parse("22:48:09 Sync: +DMR  [SLOT1]  slot2  | Color Code=11 | VC3 ") == .dmrSync)
+        #expect(DsdNeoLogParser.parse("22:48:09 Sync: +DMR   slot1  [slot2] | Color Code=11 | IDLE ") == .dmrSync)
+        // A DMR frame that hasn't synced is not a sign of life.
+        #expect(DsdNeoLogParser.parse("22:48:09 Sync:  DMR   slot1  [SLOT2] | ") == nil)
+        #expect(DsdNeoLogParser.parse(" SLOT 1 TGT=911 SRC=2262 Group Call  ")
+                == .dmrCall(slot: 1, talkgroup: 911, source: 2262, encrypted: false))
+        #expect(DsdNeoLogParser.parse("\u{1B}[32m SLOT 2 TGT=7 SRC=15 Group Call  \u{1B}[0m")
+                == .dmrCall(slot: 2, talkgroup: 7, source: 15, encrypted: false))
+        #expect(DsdNeoLogParser.parse(" SLOT 1 TGT=911 SRC=2262 Group Call  Encrypted")
+                == .dmrCall(slot: 1, talkgroup: 911, source: 2262, encrypted: true))
+        #expect(DsdNeoLogParser.parse(" SLOT 1 SLC (single) OPC=0x4 ") == nil)
+    }
+
+    @Test func dmrEventLogLinesBecomeCallRecords() throws {
+        let line = "2026-10-12 00:17:52 DMR TGT: 00000911; SRC: 00002262; CC: 11; Group;  Slot 1; "
+        let call = try #require(DsdNeoCallRecord(eventLogLine: line))
+        #expect(call.talkgroup == 911)
+        #expect(call.source == 2262)
+        #expect(call.isGroupCall)
+        #expect(!call.encrypted)
+    }
+
+    @Test func aConventionalChannelIsNotWedgedBySilence() {
+        let launch = Date()
+        let dmr = DsdNeoWatchdog(now: launch, silenceIsFailure: false)
+        #expect(dmr.checkSilence(at: launch.addingTimeInterval(DsdNeoWatchdog.silenceLimit * 10)) == nil)
+        let p25 = DsdNeoWatchdog(now: launch)
+        #expect(p25.checkSilence(at: launch.addingTimeInterval(DsdNeoWatchdog.silenceLimit + 1)) != nil)
+    }
+
+    @Test func settingsWithoutASystemTypeDecodeAsP25() throws {
+        let json = #"{"rtlSerial":"00000180","controlChannelHz":853187500,"gainDB":48,"ppm":0,"bandwidthKHz":24,"groupListPath":"","encryptionLockout":true,"audioPort":23480,"extraArguments":[]}"#
+        let settings = try JSONDecoder().decode(DsdNeoScannerSettings.self, from: Data(json.utf8))
+        #expect(settings.systemType == nil)
+        #expect(settings.effectiveSystemType == .p25Trunked)
+    }
+
+    @Test func exchangeKeepsTheSystemType() throws {
+        var set = DsdNeoConfigurationSet(configurations: [DsdNeoConfigurationSet.awin, DsdNeoConfigurationSet.ucaDMR])
+        set.activeID = set.configurations[0].id
+        let data = try DsdNeoConfigurationExchange.export(set, readList: { _ in nil })
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let imported = try DsdNeoConfigurationExchange.importing(
+            data, into: DsdNeoConfigurationSet(configurations: []), listsFolder: folder)
+        #expect(imported.set.configurations.map(\.effectiveSystemType) == [.p25Trunked, .dmrConventional])
+    }
+}

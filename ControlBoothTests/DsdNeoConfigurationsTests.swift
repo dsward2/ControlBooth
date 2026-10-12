@@ -26,13 +26,13 @@ struct DsdNeoConfigurationsTests {
         #expect(cwin.controlChannels.first?.title == "854.3625 MHz — Clearwell Road")
     }
 
-    @Test func seedsAwinAndCwinWithTheMatchingOneActive() {
+    @Test func seedsTheBuiltInSystemsWithTheMatchingOneActive() {
         var settings = DsdNeoScannerSettings()
         settings.controlChannelHz = 854_362_500
         settings.groupListPath = "/tmp/cwin-group.csv"
         settings.rtlSerial = "00000180"
         let set = DsdNeoConfigurationSet.seeded(matching: settings)
-        #expect(set.configurations.map(\.name) == ["AWIN", "CWIN"])
+        #expect(set.configurations.map(\.name) == ["AWIN", "CWIN", "UCA (DMR)"])
         #expect(set.active?.name == "CWIN")
         #expect(set.active?.groupListPath == "/tmp/cwin-group.csv")
         #expect(set.active?.rtlSerial == "00000180")
@@ -44,7 +44,7 @@ struct DsdNeoConfigurationsTests {
         var settings = DsdNeoScannerSettings()
         settings.controlChannelHz = 771_243_750
         let set = DsdNeoConfigurationSet.seeded(matching: settings)
-        #expect(set.configurations.count == 3)
+        #expect(set.configurations.count == 4)
         #expect(set.active?.controlChannels.first?.hz == 771_243_750)
     }
 
@@ -56,7 +56,7 @@ struct DsdNeoConfigurationsTests {
         var set = DsdNeoConfigurationSet.seeded(matching: settings)
         set.configurations[1].groupListPath = "/tmp/cwin.csv"
         set.configurations[1].rtlSerial = "00000360"
-        let cwin = try #require(set.configurations.last)
+        let cwin = try #require(set.configurations.first { $0.name == "CWIN" })
 
         let result = try #require(set.selecting(cwin.id, controlChannelHz: 854_387_500, from: settings))
         #expect(result.settings.controlChannelHz == 854_387_500)
@@ -106,5 +106,75 @@ struct DsdNeoConfigurationsTests {
         let loaded = DsdNeoConfigurationSet.load(settings: settings, from: defaults)
         #expect(loaded.active?.name == "CWIN")
         #expect(loaded == DsdNeoConfigurationSet.load(settings: DsdNeoScannerSettings(), from: defaults))
+    }
+
+    // MARK: DMR
+
+    @Test func ucaIsABuiltInConventionalDmrSystem() {
+        let uca = DsdNeoConfigurationSet.ucaDMR
+        #expect(uca.effectiveSystemType == .dmrConventional)
+        #expect(uca.controlChannels.map(\.hz) == [467_212_500, 467_262_500, 155_625_000, 155_415_000])
+        #expect(uca.selectedControlChannelHz == 467_212_500)
+        #expect(uca.rtlSerial == "")
+        #expect(DsdNeoConfiguration.parseChannels(uca.channelsText) == uca.controlChannels)
+    }
+
+    @Test func existingConfigurationsAreToppedUpOnceWithUca() throws {
+        let old = DsdNeoConfigurationSet(configurations: [DsdNeoConfigurationSet.awin, DsdNeoConfigurationSet.cwin])
+        #expect(old.builtinsVersion == nil)
+        let topped = old.toppedUpWithBuiltins()
+        #expect(topped.configurations.map(\.name) == ["AWIN", "CWIN", "UCA (DMR)"])
+        #expect(topped.builtinsVersion == DsdNeoConfigurationSet.currentBuiltinsVersion)
+
+        // A user who deletes it keeps it deleted.
+        var deleted = topped
+        deleted.configurations.removeAll { $0.name == "UCA (DMR)" }
+        #expect(deleted.toppedUpWithBuiltins().configurations.count == 2)
+
+        // It is not added twice when a configuration of that name exists.
+        var named = old
+        named.configurations.append(DsdNeoConfigurationSet.ucaDMR)
+        #expect(named.toppedUpWithBuiltins().configurations.count == 3)
+    }
+
+    @Test func aSavedSetWithoutDmrFieldsStillDecodes() throws {
+        let json = #"{"configurations":[{"id":"7C1A2C0E-0D0E-4A0C-9E1B-0A5B8A3B1F11","name":"AWIN","controlChannels":[{"hz":853187500,"label":""}],"selectedControlChannelHz":853187500,"groupListPath":"","rtlSerial":"00000180"}]}"#
+        let set = try JSONDecoder().decode(DsdNeoConfigurationSet.self, from: Data(json.utf8))
+        #expect(set.configurations[0].systemType == nil)
+        #expect(set.configurations[0].effectiveSystemType == .p25Trunked)
+        #expect(set.builtinsVersion == nil)
+    }
+
+    @Test func choosingAConfigurationSetsTheSystemType() throws {
+        let set = DsdNeoConfigurationSet.seeded(matching: DsdNeoScannerSettings())
+        let uca = DsdNeoConfigurationSet.ucaDMR
+        let dmr = try #require(set.selecting(uca.id, controlChannelHz: 155_625_000, from: DsdNeoScannerSettings()))
+        #expect(dmr.settings.effectiveSystemType == .dmrConventional)
+        #expect(dmr.settings.controlChannelHz == 155_625_000)
+        #expect(dmr.set.active?.selectedControlChannelHz == 155_625_000)
+
+        let back = try #require(dmr.set.selecting(DsdNeoConfigurationSet.awin.id, from: dmr.settings))
+        #expect(back.settings.effectiveSystemType == .p25Trunked)
+    }
+
+    @Test func recordingSettingsKeepsTheSystemType() throws {
+        var set = DsdNeoConfigurationSet.seeded(matching: DsdNeoScannerSettings())
+        let uca = DsdNeoConfigurationSet.ucaDMR
+        let chosen = try #require(set.selecting(uca.id, from: DsdNeoScannerSettings()))
+        set = chosen.set
+        var settings = chosen.settings
+        settings.controlChannelHz = 467_262_500
+        set.record(settings)
+        #expect(set.active?.effectiveSystemType == .dmrConventional)
+        #expect(set.active?.selectedControlChannelHz == 467_262_500)
+    }
+
+    @Test func aSeededMatchRespectsTheSystemType() {
+        // A P25 setting on a frequency a DMR configuration also lists must not pick the DMR one.
+        var settings = DsdNeoScannerSettings()
+        settings.controlChannelHz = 467_212_500
+        let set = DsdNeoConfigurationSet.seeded(matching: settings)
+        #expect(set.active?.effectiveSystemType == .p25Trunked)
+        #expect(set.active?.name == "Current")
     }
 }
