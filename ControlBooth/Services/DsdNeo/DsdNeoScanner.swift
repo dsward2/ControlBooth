@@ -3,7 +3,7 @@ import Observation
 import SharedLogging
 
 /// Runs dsd-neo for the "dsd-neo Scanner" pipeline: trunk-follows one P25
-/// system on one RTL-SDR, with dsd-neo's terminal UI on a pseudo-terminal (for
+/// system, or decodes one conventional DMR channel, on one RTL-SDR, with dsd-neo's terminal UI on a pseudo-terminal (for
 /// the dsd-neo Scanner tab) and its decoded audio sent over UDP to the
 /// pipeline's `PCMUDPReceiver --fill-silence` stage.
 ///
@@ -285,7 +285,8 @@ final class DsdNeoScanner {
 
     private func launch() throws {
         guard let run else { return }
-        watchdog = DsdNeoWatchdog(now: Date())
+        watchdog = DsdNeoWatchdog(now: Date(),
+                                  silenceIsFailure: run.settings.effectiveSystemType.silenceIndicatesFailure)
         pendingGrant = nil
 
         // dsd-neo reads the group list once at startup, so each (re)launch
@@ -368,6 +369,10 @@ final class DsdNeoScanner {
             if let grant = pendingGrant, !grant.encrypted { reportTalkgroup(grant.talkgroup) }
         case .voiceUser(let tg, let encrypted):
             if !encrypted, tg > 0 { reportTalkgroup(tg) }
+        case .dmrCall(_, let tg, _, let encrypted):
+            if !encrypted, tg > 0 { reportTalkgroup(tg) }
+        case .dmrSync:
+            restartsWithoutSignal = 0
         case .p25Sync:
             restartsWithoutSignal = 0
             if !networkConfirmed, let network = DsdNeoLogParser.networkID(in: line) {
@@ -444,10 +449,11 @@ final class DsdNeoScanner {
         guard run != nil else { return }
         guard restartsWithoutSignal < Self.maxRestartsWithoutSignal else {
             let device = run.map { $0.settings.rtlSerial.isEmpty ? "" : " (\($0.settings.rtlSerial))" } ?? ""
-            fail("dsd-neo has had no P25 signal through \(Self.maxRestartsWithoutSignal) restarts. "
+            let type = run?.settings.effectiveSystemType ?? .p25Trunked
+            fail("dsd-neo has had no \(type.protocolName) signal through \(Self.maxRestartsWithoutSignal) restarts. "
                  + "The RTL-SDR\(device) may have stopped delivering samples: unplug it, plug it back in, "
-                 + "and start the scanner again. If that doesn't help, check the antenna and the control "
-                 + "channel frequency.")
+                 + "and start the scanner again. If that doesn't help, check the antenna and the "
+                 + "\(type.channelTitle.lowercased()) frequency.")
             return
         }
         guard budget.allowRestart(at: Date()) else {

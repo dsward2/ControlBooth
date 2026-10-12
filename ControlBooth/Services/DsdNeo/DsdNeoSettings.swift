@@ -61,6 +61,51 @@ nonisolated enum DsdNeoFollowMode: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+/// What kind of system the scanner listens to. dsd-neo decodes both, but they
+/// are followed differently, so the scanner's arguments, log parsing and
+/// watchdog depend on it.
+nonisolated enum DsdNeoSystemType: String, Codable, CaseIterable, Identifiable {
+    /// A trunked P25 system: dsd-neo follows grants from a control channel
+    /// (`-ft`) to voice channels.
+    case p25Trunked = "p25"
+    /// A conventional (non-trunked) DMR channel: dsd-neo sits on one
+    /// frequency and decodes whatever is keyed up on it (`-fs`).
+    case dmrConventional = "dmr"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .p25Trunked: return "P25 Trunked"
+        case .dmrConventional: return "DMR Conventional"
+        }
+    }
+
+    /// What the tuned frequency is called in the UI.
+    var channelTitle: String {
+        switch self {
+        case .p25Trunked: return "Control Channel"
+        case .dmrConventional: return "Channel"
+        }
+    }
+
+    /// Only P25 trunking has sites, call grants to follow or a hold mode.
+    var isTrunked: Bool { self == .p25Trunked }
+
+    /// A trunked control channel transmits continuously, so a long silence
+    /// means dsd-neo isn't receiving. A conventional channel is silent
+    /// whenever nobody is talking, so silence says nothing.
+    var silenceIndicatesFailure: Bool { isTrunked }
+
+    /// "P25" or "DMR", for messages.
+    var protocolName: String {
+        switch self {
+        case .p25Trunked: return "P25"
+        case .dmrConventional: return "DMR"
+        }
+    }
+}
+
 /// How the scanner runs dsd-neo. One system (a trunked control channel) on
 /// one RTL-SDR; the dsd-neo Scanner tab edits these. Stored as JSON in
 /// ControlBooth's defaults under `dsdNeoScanner.settings` (by path —
@@ -69,7 +114,8 @@ nonisolated enum DsdNeoFollowMode: String, Codable, CaseIterable, Identifiable {
 nonisolated struct DsdNeoScannerSettings: Codable, Equatable {
     /// EEPROM serial of the RTL-SDR (not its USB index, which can change).
     var rtlSerial: String = ""
-    /// Control channel frequency in Hz.
+    /// The frequency in Hz: a trunked system's control channel, or a
+    /// conventional system's channel.
     var controlChannelHz: Int = 0
     /// Tuner gain in dB; 0 = automatic.
     var gainDB: Double = 48
@@ -95,8 +141,15 @@ nonisolated struct DsdNeoScannerSettings: Codable, Equatable {
     var followMode: DsdNeoFollowMode?
     /// The talkgroup Hold Talkgroup mode stays on.
     var holdTalkgroup: Int?
+    /// What kind of system this is; nil (settings saved before DMR support
+    /// existed) is P25 Trunked.
+    var systemType: DsdNeoSystemType?
+
+    var effectiveSystemType: DsdNeoSystemType { systemType ?? .p25Trunked }
 
     var effectiveFollowMode: DsdNeoFollowMode {
+        // Only a trunked system has calls to follow.
+        guard effectiveSystemType.isTrunked else { return .scanAll }
         let mode = followMode ?? .scanAll
         if mode == .hold, (holdTalkgroup ?? 0) <= 0 { return .scanAll }
         return mode
@@ -109,7 +162,8 @@ nonisolated struct DsdNeoScannerSettings: Codable, Equatable {
     /// a system shares it; the control channel until then.
     var systemKey: String {
         if let systemID, !systemID.isEmpty { return "sys-\(systemID)" }
-        return "cc-\(controlChannelHz)"
+        // P25 keeps the old "cc-" key, so existing per-system state still matches.
+        return effectiveSystemType.isTrunked ? "cc-\(controlChannelHz)" : "dmr-\(controlChannelHz)"
     }
 
     static let defaultsKey = "dsdNeoScanner.settings"
@@ -135,21 +189,27 @@ nonisolated struct DsdNeoScannerSettings: Codable, Equatable {
     }
 
     /// dsd-neo's command line for USB device `rtlIndex`: P25 trunk following
-    /// on the control channel, decoded audio to the local UDP port, the
-    /// terminal UI on the pseudo-terminal, and the event log for call records.
+    /// on the control channel (or, for a conventional DMR system, decoding
+    /// the one channel), decoded audio to the local UDP port, the terminal UI
+    /// on the pseudo-terminal, and the event log for call records.
     func arguments(rtlIndex: UInt32, groupListPath: String?, eventLogPath: String) -> [String] {
         let gain = gainDB == gainDB.rounded() ? String(Int(gainDB)) : String(gainDB)
+        let type = effectiveSystemType
         var args = [
-            "-ft",
+            type.isTrunked ? "-ft" : "-fs",
             "-i", "rtl:\(rtlIndex):\(Self.megahertz(controlChannelHz)):\(gain):\(ppm):\(bandwidthKHz):0:2",
-            "-T",
         ]
+        if type.isTrunked { args.append("-T") }
         if let groupListPath { args += ["-G", groupListPath] }
         if encryptionLockout { args.append("--enc-lockout") }
-        switch effectiveFollowMode {
-        case .scanAll: break
-        case .allowListOnly: args.append("-W")
-        case .hold: args += ["-I", String(holdTalkgroup ?? 0)]
+        // Following calls is trunking: a conventional channel has nothing to
+        // follow, so its follow mode is ignored.
+        if type.isTrunked {
+            switch effectiveFollowMode {
+            case .scanAll: break
+            case .allowListOnly: args.append("-W")
+            case .hold: args += ["-I", String(holdTalkgroup ?? 0)]
+            }
         }
         args += [
             "-o", "udp:127.0.0.1:\(audioPort)",

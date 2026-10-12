@@ -16,6 +16,8 @@ nonisolated struct DsdNeoConfigurationExchange: Codable, Equatable {
         var selectedControlChannelHz: Int
         var rtlSerial: String
         var systemID: String?
+        /// "p25" or "dmr"; absent in files from before DMR support (P25).
+        var systemType: DsdNeoSystemType?
         /// The talkgroup list's file name, and its dsd-neo CSV text.
         var groupListName: String?
         var groupListCSV: String?
@@ -58,6 +60,7 @@ nonisolated struct DsdNeoConfigurationExchange: Codable, Equatable {
                          selectedControlChannelHz: configuration.selectedControlChannelHz,
                          rtlSerial: configuration.rtlSerial,
                          systemID: configuration.systemID,
+                         systemType: configuration.systemType,
                          groupListName: csv == nil ? nil : (path as NSString).lastPathComponent,
                          groupListCSV: csv)
         }
@@ -98,7 +101,8 @@ nonisolated struct DsdNeoConfigurationExchange: Codable, Equatable {
             result.configurations.append(DsdNeoConfiguration(
                 name: name, controlChannels: entry.controlChannels,
                 selectedControlChannelHz: entry.selectedControlChannelHz,
-                groupListPath: listPath, rtlSerial: entry.rtlSerial, systemID: entry.systemID))
+                groupListPath: listPath, rtlSerial: entry.rtlSerial, systemID: entry.systemID,
+                systemType: entry.systemType))
             report.added.append(name)
         }
         return (result, report)

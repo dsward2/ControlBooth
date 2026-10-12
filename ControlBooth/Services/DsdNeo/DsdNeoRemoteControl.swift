@@ -36,6 +36,9 @@ enum DsdNeoRemoteControl {
         var controlChannels: [Channel]
         /// The control channel the configuration is set to.
         var selectedControlChannelHz: Int
+        /// "p25" (trunked) or "dmr" (conventional); `controlChannels` are then
+        /// the channels of a conventional system.
+        var systemType: String
 
         struct Channel: Codable, Equatable {
             var hz: Int
@@ -61,6 +64,8 @@ enum DsdNeoRemoteControl {
         var talkgroupText: String?
         var systemID: String?
         var controlChannelHz: Int
+        /// "p25" or "dmr": what kind of system the scanner is set to.
+        var systemType: String
         /// Locked out by hand (the blacklist).
         var lockedOut: [Talkgroup]
         /// Locked out automatically for carrying only encrypted calls.
@@ -117,6 +122,7 @@ enum DsdNeoRemoteControl {
                       talkgroupText: scanner.isActive ? scanner.nowPlayingText : nil,
                       systemID: settings.systemID,
                       controlChannelHz: settings.controlChannelHz,
+                      systemType: settings.effectiveSystemType.rawValue,
                       lockedOut: entries(overrides.lockedOut),
                       encryptedLockedOut: entries(encrypted),
                       alwaysAllowed: entries(overrides.alwaysAllowed),
@@ -125,7 +131,8 @@ enum DsdNeoRemoteControl {
                           ConfigurationStatus(
                               id: configuration.id.uuidString, name: configuration.name,
                               controlChannels: configuration.controlChannels.map { .init(hz: $0.hz, label: $0.label) },
-                              selectedControlChannelHz: configuration.selectedControlChannelHz)
+                              selectedControlChannelHz: configuration.selectedControlChannelHz,
+                              systemType: configuration.effectiveSystemType.rawValue)
                       },
                       activeConfigurationID: configurationSet.activeID?.uuidString)
     }

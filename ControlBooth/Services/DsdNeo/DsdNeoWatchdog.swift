@@ -43,10 +43,14 @@ nonisolated struct DsdNeoWatchdog {
 
     private var consecutiveLosses = 0
     private var lastSignal: Date
+    /// False for a conventional channel, which is silent whenever nobody is
+    /// talking, so silence is no sign of a wedged receiver.
+    private let silenceIsFailure: Bool
 
     /// `now` is when dsd-neo was launched: the silence clock starts there.
-    init(now: Date = Date()) {
+    init(now: Date = Date(), silenceIsFailure: Bool = true) {
         lastSignal = now
+        self.silenceIsFailure = silenceIsFailure
     }
 
     /// Feeds one parsed log event; returns why dsd-neo should be restarted,
@@ -61,7 +65,7 @@ nonisolated struct DsdNeoWatchdog {
                 consecutiveLosses = 0
                 return .controlChannelLost(times: Self.maxConsecutiveLosses)
             }
-        case .p25Sync:
+        case .p25Sync, .dmrSync:
             consecutiveLosses = 0
             lastSignal = now
         case .tunedToGrant:
@@ -74,7 +78,8 @@ nonisolated struct DsdNeoWatchdog {
 
     /// Checked periodically, since silence produces no events to observe.
     func checkSilence(at now: Date) -> Reason? {
-        now.timeIntervalSince(lastSignal) >= Self.silenceLimit ? .noSignal(seconds: Int(Self.silenceLimit)) : nil
+        guard silenceIsFailure else { return nil }
+        return now.timeIntervalSince(lastSignal) >= Self.silenceLimit ? .noSignal(seconds: Int(Self.silenceLimit)) : nil
     }
 }
 

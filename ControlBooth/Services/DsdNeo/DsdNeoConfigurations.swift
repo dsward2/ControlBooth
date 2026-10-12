@@ -15,8 +15,9 @@ nonisolated struct DsdNeoControlChannel: Codable, Equatable, Hashable, Identifia
     }
 }
 
-/// A trunked system the scanner can follow (AWIN, CWIN, …): the control
-/// channels it is known to use, which one is selected, its talkgroup list,
+/// A system the scanner can listen to: a trunked P25 system (AWIN, CWIN, …)
+/// or a conventional DMR one (UCA). Its control channels (for a conventional
+/// system, simply its channels) are the frequencies it is known to use, which one is selected, its talkgroup list,
 /// and the dongle to use. Choosing one fills the scanner's settings with
 /// these; the rest of the settings (gain, bandwidth, follow mode, …) are
 /// shared by every configuration.
@@ -34,6 +35,10 @@ nonisolated struct DsdNeoConfiguration: Codable, Equatable, Identifiable {
     var rtlSerial: String = ""
     /// The network the scanner last identified on this system ("BEE00-188").
     var systemID: String?
+    /// P25 Trunked or DMR Conventional; nil (saved before DMR support) is P25.
+    var systemType: DsdNeoSystemType?
+
+    var effectiveSystemType: DsdNeoSystemType { systemType ?? .p25Trunked }
 
     /// "854.3625" — a frequency in MHz without trailing zeros.
     static func megahertzText(_ hertz: Int) -> String {
@@ -80,6 +85,13 @@ nonisolated struct DsdNeoConfiguration: Codable, Equatable, Identifiable {
 nonisolated struct DsdNeoConfigurationSet: Codable, Equatable {
     var configurations: [DsdNeoConfiguration] = []
     var activeID: UUID?
+    /// Which built-in systems this set has been given. Sets saved before a
+    /// built-in existed are topped up once when loaded, so a configuration the
+    /// user later deletes stays deleted. Nil is version 1 (AWIN and CWIN).
+    var builtinsVersion: Int?
+
+    /// Version 2 added UCA (DMR).
+    static let currentBuiltinsVersion = 2
 
     static let defaultsKey = "dsdNeoScanner.configurations"
 
@@ -101,7 +113,7 @@ nonisolated struct DsdNeoConfigurationSet: Codable, Equatable {
            let data = json.data(using: .utf8),
            let set = try? JSONDecoder().decode(DsdNeoConfigurationSet.self, from: data),
            !set.configurations.isEmpty {
-            return set
+            return set.toppedUpWithBuiltins()
         }
         return seeded(matching: settings)
     }
@@ -110,6 +122,17 @@ nonisolated struct DsdNeoConfigurationSet: Codable, Equatable {
         guard let data = try? JSONEncoder().encode(self),
               let json = String(data: data, encoding: .utf8) else { return }
         defaults.set(json, forKey: Self.defaultsKey)
+    }
+
+    /// This set with any built-in system added since it was saved.
+    func toppedUpWithBuiltins() -> DsdNeoConfigurationSet {
+        guard (builtinsVersion ?? 1) < Self.currentBuiltinsVersion else { return self }
+        var set = self
+        if !set.configurations.contains(where: { $0.name == Self.ucaDMR.name }) {
+            set.configurations.append(Self.ucaDMR)
+        }
+        set.builtinsVersion = Self.currentBuiltinsVersion
+        return set
     }
 
     // MARK: Built-in systems
@@ -137,16 +160,33 @@ nonisolated struct DsdNeoConfigurationSet: Codable, Equatable {
         selectedControlChannelHz: 854_362_500,
         systemID: "927FA-00A")
 
+    /// University of Central Arkansas (Faulkner County), RadioReference
+    /// subcategory 41852. RadioReference lists these four channels as narrowband
+    /// analog FM, but a burst recorded from them decoded as DMR (Color Code 11,
+    /// slot 1 group call). Which channel carries it isn't known, so all four are
+    /// here to try. No dongle is set: it uses whichever the scanner is on.
+    static let ucaDMR = DsdNeoConfiguration(
+        name: "UCA (DMR)",
+        controlChannels: [
+            (467_212_500, "UCA Maintenance 1"), (467_262_500, "UCA Maintenance 2"),
+            (155_625_000, "UCA Police Dispatch"), (155_415_000, "UCA Police 2"),
+        ].map { DsdNeoControlChannel(hz: $0.0, label: $0.1) },
+        selectedControlChannelHz: 467_212_500,
+        systemType: .dmrConventional)
+
     /// AWIN and CWIN, with the one `settings` is on active; its talkgroup
     /// list and dongle go to that configuration. When `settings` matches
     /// neither, it becomes a third configuration.
     static func seeded(matching settings: DsdNeoScannerSettings) -> DsdNeoConfigurationSet {
-        var set = DsdNeoConfigurationSet(configurations: [awin, cwin])
+        var set = DsdNeoConfigurationSet(configurations: [awin, cwin, ucaDMR],
+                                         builtinsVersion: currentBuiltinsVersion)
         guard settings.controlChannelHz > 0 else {
             set.activeID = set.configurations.first?.id
             return set
         }
-        if let index = set.configurations.firstIndex(where: { $0.channel(at: settings.controlChannelHz) != nil }) {
+        if let index = set.configurations.firstIndex(where: {
+            $0.effectiveSystemType == settings.effectiveSystemType && $0.channel(at: settings.controlChannelHz) != nil
+        }) {
             set.configurations[index].selectedControlChannelHz = settings.controlChannelHz
             set.configurations[index].groupListPath = settings.groupListPath
             set.configurations[index].rtlSerial = settings.rtlSerial
@@ -157,7 +197,7 @@ nonisolated struct DsdNeoConfigurationSet: Codable, Equatable {
                 controlChannels: [DsdNeoControlChannel(hz: settings.controlChannelHz, label: "")],
                 selectedControlChannelHz: settings.controlChannelHz,
                 groupListPath: settings.groupListPath, rtlSerial: settings.rtlSerial,
-                systemID: settings.systemID)
+                systemID: settings.systemID, systemType: settings.systemType)
             set.configurations.append(custom)
             set.activeID = custom.id
         }
@@ -190,6 +230,7 @@ nonisolated struct DsdNeoConfigurationSet: Codable, Equatable {
         // re-learned when the configuration changes.
         updated.systemID = configuration.systemID
         if !changed, settings.systemID != nil { updated.systemID = settings.systemID }
+        updated.systemType = configuration.systemType
         return (set, updated)
     }
 
@@ -208,5 +249,6 @@ nonisolated struct DsdNeoConfigurationSet: Codable, Equatable {
         configurations[index].groupListPath = settings.groupListPath
         if !settings.rtlSerial.isEmpty { configurations[index].rtlSerial = settings.rtlSerial }
         if let systemID = settings.systemID, !systemID.isEmpty { configurations[index].systemID = systemID }
+        configurations[index].systemType = settings.systemType
     }
 }
