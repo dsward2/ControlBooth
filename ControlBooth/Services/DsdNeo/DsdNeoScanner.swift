@@ -22,6 +22,13 @@ final class DsdNeoScanner {
         case failed(String)
     }
 
+    /// What a hardware recovery (a USB hub power cycle) achieved.
+    enum HardwareRecoveryResult: Sendable, Equatable {
+        /// The RTL-SDR is back, at this USB index.
+        case recovered(index: UInt32)
+        case failed(String)
+    }
+
     private(set) var state: State = .idle
     /// The pipeline this scanner is feeding, while active.
     private(set) var pipelineID: Int64?
@@ -71,6 +78,12 @@ final class DsdNeoScanner {
     /// wedged RTL-SDR or a dead antenna, so after a few it gives up.
     @ObservationIgnored private var restartsWithoutSignal = 0
     static let maxRestartsWithoutSignal = 3
+    /// Power cycles the USB hub the RTL-SDR is on (given its serial) once the
+    /// restarts above have failed, when the user has set that up. It reports
+    /// the dongle's new USB index, which can differ from before.
+    @ObservationIgnored var hardwareRecovery: (@Sendable (String) async -> HardwareRecoveryResult)?
+    /// One power cycle per run: a second wouldn't fix what the first didn't.
+    @ObservationIgnored private var hardwareRecoveryTried = false
     @ObservationIgnored private var pendingGrant: (talkgroup: Int, encrypted: Bool)?
     @ObservationIgnored private var listNames: [Int: String] = [:]
     @ObservationIgnored private var sitesDirty = false
@@ -128,6 +141,7 @@ final class DsdNeoScanner {
         lastRestartReason = nil
         budget = DsdNeoRestartBudget()
         restartsWithoutSignal = 0
+        hardwareRecoveryTried = false
         nowPlayingTalkgroup = nil
         nowPlayingText = nil
         terminalBacklog.removeAll()
@@ -191,6 +205,7 @@ final class DsdNeoScanner {
         self.run = run
         budget = DsdNeoRestartBudget()
         restartsWithoutSignal = 0
+        hardwareRecoveryTried = false
         restartCount = 0
         lastRestartReason = nil
         nowPlayingTalkgroup = nil
@@ -448,9 +463,15 @@ final class DsdNeoScanner {
     private func restart(because reason: String) {
         guard run != nil else { return }
         guard restartsWithoutSignal < Self.maxRestartsWithoutSignal else {
+            if let hardwareRecovery, !hardwareRecoveryTried, let serial = run?.settings.rtlSerial, !serial.isEmpty {
+                hardwareRecoveryTried = true
+                powerCycleHub(serial: serial, recovery: hardwareRecovery, reason: reason)
+                return
+            }
             let device = run.map { $0.settings.rtlSerial.isEmpty ? "" : " (\($0.settings.rtlSerial))" } ?? ""
             let type = run?.settings.effectiveSystemType ?? .p25Trunked
             fail("dsd-neo has had no \(type.protocolName) signal through \(Self.maxRestartsWithoutSignal) restarts. "
+                 + (hardwareRecoveryTried ? "Power cycling its USB hub didn't help. " : "")
                  + "The RTL-SDR\(device) may have stopped delivering samples: unplug it, plug it back in, "
                  + "and start the scanner again. If that doesn't help, check the antenna and the "
                  + "\(type.channelTitle.lowercased()) frequency.")
@@ -481,6 +502,46 @@ final class DsdNeoScanner {
                 } catch {
                     self.fail("could not restart dsd-neo: \(error)")
                 }
+            }
+        }
+    }
+
+    /// Stops dsd-neo, power cycles the RTL-SDR's USB hub, and launches dsd-neo
+    /// again on the dongle's new index. Failing here stops the pipeline.
+    private func powerCycleHub(serial: String,
+                               recovery: @escaping @Sendable (String) async -> HardwareRecoveryResult,
+                               reason: String) {
+        LogStore.shared.log(.warning, source: "DsdNeoScanner",
+                            "\(reason); power cycling the USB hub of RTL-SDR \(serial)")
+        lastRestartReason = reason
+        nowPlayingTalkgroup = nil
+        nowPlayingText = nil
+        state = .restarting("power cycling the USB hub")
+        generation += 1
+        let current = generation
+        process?.terminateAndWait()
+        process = nil
+        readEventLog()
+        closeStderrLog()
+        Task { [weak self] in
+            let result = await recovery(serial)
+            guard let self, self.generation == current, self.run != nil,
+                  case .restarting = self.state else { return }
+            switch result {
+            case .recovered(let index):
+                LogStore.shared.log(.info, source: "DsdNeoScanner",
+                                    "RTL-SDR \(serial) is back at USB index \(index); restarting dsd-neo")
+                self.run?.rtlIndex = index
+                self.restartsWithoutSignal = 0
+                self.budget = DsdNeoRestartBudget()
+                do {
+                    try self.launch()
+                } catch {
+                    self.fail("could not restart dsd-neo: \(error)")
+                }
+            case .failed(let message):
+                self.fail("Power cycling the USB hub failed: \(message) Unplug the RTL-SDR (\(serial)), "
+                          + "plug it back in, and start the scanner again.")
             }
         }
     }

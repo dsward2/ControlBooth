@@ -452,6 +452,10 @@ final class PipelineRunner {
             saved.systemID = id
             saved.save()
         }
+        // A wedged RTL-SDR only recovers when it loses power; with an
+        // upstream hub chosen for that, the scanner may cycle it before giving up.
+        let hubPower = USBHubPowerSettings.load()
+        dsdNeoScanner.hardwareRecovery = USBHubRecovery.recovery(for: hubPower)
         dsdNeoScanner.onFatal = { [weak self] _ in
             guard let self, let manager = self.managers[id] else { return }
             manager.terminateAndWait()
