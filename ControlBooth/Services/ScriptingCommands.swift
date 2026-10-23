@@ -313,3 +313,66 @@ nonisolated final class StopRadioCommand: NSScriptCommand {
         }
     }
 }
+
+
+// MARK: USB hub power
+
+@MainActor
+private func usbHubPower(reportingTo command: NSScriptCommand) -> USBHubPowerController? {
+    guard let controller = AppDelegate.shared?.usbHubPower else {
+        command.scriptErrorNumber = NSInternalScriptError
+        command.scriptErrorString = "ControlBooth is still launching; try again."
+        return nil
+    }
+    return controller
+}
+
+@MainActor
+private func usbHubPowerJSON(_ controller: USBHubPowerController, refreshing: Bool) -> String {
+    if refreshing { controller.refresh() }
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.sortedKeys]
+    let data = (try? encoder.encode(controller.status(includingTree: refreshing))) ?? Data("{}".utf8)
+    return String(decoding: data, as: UTF8.self)
+}
+
+/// 'usb hub status': the chosen power-cycle port and the last outcome, as JSON.
+@objc(UsbHubStatusCommand)
+nonisolated final class UsbHubStatusCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        MainActor.assumeIsolated {
+            guard let controller = usbHubPower(reportingTo: self) else { return nil }
+            return usbHubPowerJSON(controller, refreshing: false)
+        }
+    }
+}
+
+/// 'usb tree': the same, with the USB tree read fresh.
+@objc(UsbTreeCommand)
+nonisolated final class UsbTreeCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        MainActor.assumeIsolated {
+            guard let controller = usbHubPower(reportingTo: self) else { return nil }
+            return usbHubPowerJSON(controller, refreshing: true)
+        }
+    }
+}
+
+/// 'power cycle usb hub': starts cycling the chosen port and returns at once
+/// (the cycle takes several seconds); the outcome is in 'usb hub status'.
+@objc(UsbHubCycleCommand)
+nonisolated final class UsbHubCycleCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        MainActor.assumeIsolated {
+            guard let controller = usbHubPower(reportingTo: self) else { return nil }
+            controller.refresh()
+            do {
+                try controller.startCycle()
+            } catch {
+                scriptErrorNumber = NSInternalScriptError
+                scriptErrorString = "\(error)"
+            }
+            return nil
+        }
+    }
+}
