@@ -22,6 +22,12 @@ struct USBHubPowerSection: View {
                     Button("USB Tree…") { openWindow(id: "usb-tree") }
                         .controlSize(.small)
                 }
+                DisclosureGroup("Hub requirements") {
+                    Text(USBHubRequirements.details)
+                        .font(.caption).foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 if !controller.uhubctlInstalled {
                     Label(String(describing: USBHubPowerError.uhubctlMissing), systemImage: "exclamationmark.triangle.fill")
                         .font(.caption).foregroundStyle(.orange)

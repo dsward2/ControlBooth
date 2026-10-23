@@ -101,6 +101,33 @@ shairport-sync are vendored per-app rather than shared through SPM — none of
 these native, OS-library-dependent tools can cleanly go through a package
 target.
 
+## USB hub power cycling (wedged RTL-SDRs)
+
+A wedged RTL-SDR ("PLL not locked", no samples) only recovers when it loses power. ControlBooth can switch a
+USB hub port off and on with [uhubctl](https://github.com/mvp/uhubctl): choose the port in **Commands > USB Tree…**
+(⇧⌘U), turn on "Power cycle a USB hub if the RTL-SDR wedges" in the dsd-neo Scanner's settings for automatic
+recovery, or use **Commands > Power Cycle USB Hub…** and AntennaHead's Now Playing page by hand.
+
+Requirements:
+
+- **uhubctl** installed (`sudo port install uhubctl` or `brew install uhubctl`). ControlBooth looks in
+  `/opt/local`, `/opt/homebrew` and `/usr/local`. It is not bundled. It worked without `sudo` on macOS; if cycling
+  fails for lack of permission, uhubctl has to run as root.
+- A hub that supports **per-port power switching (PPPS)**. `uhubctl` marks such a hub `ppps` in its listing
+  (`Current status for hub 2-2.1 [045b:0209, USB 2.10, 4 ports, ppps]`); `ganged` means all ports switch together
+  and ControlBooth won't offer it.
+- The RTL-SDRs themselves can be on any hub, including a ganged one. The switchable hub is the one *above* it:
+  choose the port that the RTL-SDRs' hub is plugged into. Everything below that port loses power.
+- The hub must really cut power. Some hubs advertise PPPS but only drop the data lines, which doesn't un-wedge a
+  dongle. Test with "Power Cycle Now…" and watch the dongles go away and return (their LEDs go dark if power was cut).
+  uhubctl's project page lists hubs known to work.
+- Self-powered hubs are much more likely to work than bus-powered ones. A Mac's built-in ports and most unpowered
+  travel hubs can't switch power.
+- A USB 3 hub has a USB 2 and a USB 3 side; uhubctl cycles both.
+
+ControlBooth checks the hub's location and USB ID, and the device on the port, before every cycle, and refuses
+(asking you to choose again) if the USB layout has changed.
+
 ## Audio contract
 
 Every path into AntennaHead's LiveAudioServer is 48 kHz / 2-channel S16LE.

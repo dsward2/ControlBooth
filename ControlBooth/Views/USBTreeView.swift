@@ -97,6 +97,11 @@ struct USBTreeView: View {
 
     private var footer: some View {
         VStack(alignment: .leading, spacing: 8) {
+            if controller.uhubctlInstalled, !controller.rows.isEmpty, !controller.rows.contains(where: \.selectable) {
+                Label("No hub here can switch its ports' power individually. " + USBHubRequirements.summary,
+                      systemImage: "info.circle")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             if !controller.uhubctlInstalled {
                 Label(String(describing: USBHubPowerError.uhubctlMissing), systemImage: "exclamationmark.triangle.fill")
                     .font(.caption).foregroundStyle(.orange)

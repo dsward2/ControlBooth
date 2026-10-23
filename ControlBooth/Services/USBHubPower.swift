@@ -272,3 +272,19 @@ nonisolated enum USBHubRecovery {
         }.value
     }
 }
+
+/// What a hub must be able to do for ControlBooth to power cycle it, as shown
+/// in the dsd-neo Scanner's USB Hub Power section and the USB Tree window.
+nonisolated enum USBHubRequirements {
+    static let summary = "Needs a hub that switches each port's power on its own (uhubctl lists it as ppps)."
+
+    static let details = """
+        • The hub whose port is cycled must support per-port power switching (PPPS).         uhubctl's listing marks such a hub "ppps"; a hub marked "ganged" can only switch all its ports together,         and ControlBooth won't use it.
+        • The RTL-SDRs' own hub can be any hub, even a ganged one. What counts is the hub above it, whose port         feeds it: that port is switched off and on, which drops the hub below and everything on it.
+        • Hubs that claim PPPS don't always cut the power: some only disconnect the data lines, so a wedged         RTL-SDR stays wedged. Try "Power Cycle Now…" and watch the dongles disappear and come back (their LEDs         go dark if power was cut). uhubctl's project page lists hubs known to work.
+        • A hub with its own power supply is far more likely to work than a bus-powered one. A Mac's built-in         ports and most unpowered travel hubs don't switch power.
+        • USB 3 hubs have a USB 2 and a USB 3 side; uhubctl cycles both.
+        • uhubctl must be installed (MacPorts: sudo port install uhubctl; Homebrew: brew install uhubctl).         It worked here without sudo; if cycling fails for lack of permission, uhubctl needs to run as root.
+        • Everything below the chosen port loses power for a few seconds, including every RTL-SDR on it.
+        """
+}
