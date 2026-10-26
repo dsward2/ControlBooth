@@ -300,6 +300,7 @@ struct DsdNeoScannerView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
+            USBHubPowerSection()
             Section {
                 TextField("Extra dsd-neo Arguments", text: $extraArgumentsText, prompt: Text("e.g. -W"))
                 TextField("Audio Port", value: $draft.audioPort, format: .number.grouping(.never))

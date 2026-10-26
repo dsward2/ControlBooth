@@ -12,6 +12,7 @@ struct ControlBoothApp: App {
     @State private var airPlaySettingsStore = AirPlaySettingsStore()
     @State private var airPlayReceiverService = AirPlayReceiverService()
     @State private var radioStation = RadioStation()
+    @State private var usbHubPower = USBHubPowerController()
 
     init() {
         LogStore.shared.configure(appName: "ControlBooth")
@@ -27,12 +28,14 @@ struct ControlBoothApp: App {
                 .environment(airPlaySettingsStore)
                 .environment(airPlayReceiverService)
                 .environment(radioStation)
+                .environment(usbHubPower)
                 .background(CloseButtonHider())
                 .onAppear {
                     appDelegate.runner = runner
                     appDelegate.store = store
                     appDelegate.airPlayReceiverService = airPlayReceiverService
                     appDelegate.radioStation = radioStation
+                    appDelegate.usbHubPower = usbHubPower
                     radioStation.configure(runner: runner, airPlay: airPlayReceiverService)
                     // A copy hosting unit tests must leave the real app's world
                     // alone: no database seeding, scheduled starts, or AirPlay
@@ -71,6 +74,8 @@ struct ControlBoothApp: App {
             }
             CommandMenu("Commands") {
                 StopPipelineMenuButton(store: store, runner: runner)
+                Divider()
+                USBHubPowerMenuButtons(controller: usbHubPower)
             }
         }
 
@@ -78,6 +83,12 @@ struct ControlBoothApp: App {
             AboutView()
         }
         .windowResizability(.contentSize)
+
+        Window("USB Tree", id: "usb-tree") {
+            USBTreeView()
+                .environment(usbHubPower)
+        }
+        .defaultSize(width: 640, height: 480)
 
         Window("Logs", id: "logs") {
             LogViewerView()
@@ -126,6 +137,23 @@ private struct StopPipelineMenuButton: View {
     }
 }
 
+/// Commands > USB Tree… and Power Cycle USB Hub…: the second opens the USB
+/// Tree window, which asks to confirm before anything loses power.
+private struct USBHubPowerMenuButtons: View {
+    let controller: USBHubPowerController
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Button("USB Tree…") { openWindow(id: "usb-tree") }
+            .keyboardShortcut("u", modifiers: [.command, .shift])
+        Button("Power Cycle USB Hub…") {
+            controller.confirmationRequested = true
+            openWindow(id: "usb-tree")
+        }
+        .disabled(!controller.canCycle)
+    }
+}
+
 private struct RevealRecordingsFolderButton: View {
     var body: some View {
         Button("Show Recordings Folder in Finder") {
@@ -153,6 +181,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var store: PipelineStore?
     var airPlayReceiverService: AirPlayReceiverService?
     var radioStation: RadioStation?
+    var usbHubPower: USBHubPowerController?
 
     override init() {
         super.init()

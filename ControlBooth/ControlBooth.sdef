@@ -63,6 +63,26 @@
             <access-group identifier="com.dsward.ControlBooth.pipelines"/>
         </command>
 
+        <command name="usb hub status" code="CBthUbSt"
+                 description="The USB hub port chosen for power cycling a wedged RTL-SDR, the RTL-SDRs on it and the last power cycle's outcome, as JSON.">
+            <cocoa class="UsbHubStatusCommand"/>
+            <access-group identifier="com.dsward.ControlBooth.pipelines"/>
+            <result type="text" description="A JSON object (see USBHubPowerStatus)."/>
+        </command>
+
+        <command name="usb tree" code="CBthUbTr"
+                 description="Like usb hub status, with the USB device tree read fresh.">
+            <cocoa class="UsbTreeCommand"/>
+            <access-group identifier="com.dsward.ControlBooth.pipelines"/>
+            <result type="text" description="A JSON object (see USBHubPowerStatus)."/>
+        </command>
+
+        <command name="power cycle usb hub" code="CBthUbPc"
+                 description="Switch the chosen USB hub port off and on, which powers off every device below it (including RTL-SDRs). Returns at once; the outcome is in usb hub status.">
+            <cocoa class="UsbHubCycleCommand"/>
+            <access-group identifier="com.dsward.ControlBooth.pipelines"/>
+        </command>
+
         <command name="dsd-neo status" code="CBthDnSt"
                  description="The dsd-neo Scanner's state, follow mode, talkgroup being heard and talkgroup lockouts, as JSON.">
             <cocoa class="DsdNeoStatusCommand"/>
