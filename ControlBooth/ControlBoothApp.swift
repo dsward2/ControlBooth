@@ -42,6 +42,7 @@ struct ControlBoothApp: App {
                     // receiver competing for port 5000.
                     guard !AppDelegate.isHostingUnitTests else { return }
                     store.seedDsdNeoScannerPipelineIfNeeded()
+                    usbHubPower.refresh()
                     scheduler.reschedule(events: eventStore.events, pipelineStore: store, runner: runner)
                     airPlayReceiverService.setSettingsStore(airPlaySettingsStore)
                     airPlayReceiverService.applySettings(airPlaySettingsStore.settings)

@@ -329,7 +329,9 @@ private func usbHubPower(reportingTo command: NSScriptCommand) -> USBHubPowerCon
 
 @MainActor
 private func usbHubPowerJSON(_ controller: USBHubPowerController, refreshing: Bool) -> String {
-    if refreshing { controller.refresh() }
+    // A status without the tree still names the chosen port and the RTL-SDRs
+    // on it, which come from the tree.
+    if refreshing { controller.refresh() } else { controller.refreshIfStale() }
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.sortedKeys]
     let data = (try? encoder.encode(controller.status(includingTree: refreshing))) ?? Data("{}".utf8)

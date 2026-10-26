@@ -73,8 +73,23 @@ final class USBHubPowerController {
 
     var canCycle: Bool { settings.isConfigured && cycler.isInstalled && !isCycling }
 
+    /// When the tree was last read; nil before the first read.
+    @ObservationIgnored private var lastRefresh: Date?
+
+    /// How long a read of the tree is good for when a status is asked for.
+    static let statusMaxAge: TimeInterval = 10
+
+    /// Reads the tree unless it was read within `maxAge` seconds, so a status
+    /// poll names the chosen port and its RTL-SDRs without launching ioreg and
+    /// uhubctl on every request.
+    func refreshIfStale(maxAge: TimeInterval = USBHubPowerController.statusMaxAge) {
+        if let lastRefresh, Date().timeIntervalSince(lastRefresh) < maxAge { return }
+        refresh()
+    }
+
     /// Reads the tree and uhubctl's hub list again.
     func refresh() {
+        lastRefresh = Date()
         let cycler = self.cycler
         do {
             let hubs = cycler.isInstalled ? try cycler.listHubs() : []

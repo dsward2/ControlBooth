@@ -82,4 +82,20 @@ struct USBTreeTests {
         // A path that merely starts with the same digits isn't below it.
         #expect(!USBTree.devices(affectedBy: mtt, in: rows).contains { $0.path == "2-2.1.3" })
     }
+
+    /// A status asked for before anything read the tree used to name the port by
+    /// its USB ID and list no RTL-SDRs.
+    @MainActor @Test func statusReadsTheTreeWhenItHasNone() {
+        let controller = USBHubPowerController(
+            settings: USBHubPowerSettings(enabled: true, hubLocation: "2-2.1", hubID: "045b:0209",
+                                          port: 1, portDeviceID: "1a40:0101"),
+            cycler: USBHubPowerCycler(executable: nil))
+        #expect(controller.status(includingTree: false).affectedRTLSDRs.isEmpty)
+        controller.refreshIfStale()
+        // The tree was read (whatever this machine has); a second ask within the
+        // age limit doesn't read it again.
+        let first = controller.rows
+        controller.refreshIfStale()
+        #expect(controller.rows == first)
+    }
 }
