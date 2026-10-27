@@ -90,8 +90,8 @@ nonisolated struct DsdNeoConfigurationSet: Codable, Equatable {
     /// user later deletes stays deleted. Nil is version 1 (AWIN and CWIN).
     var builtinsVersion: Int?
 
-    /// Version 2 added UCA (DMR).
-    static let currentBuiltinsVersion = 2
+    /// Version 2 added UCA (DMR); version 3 added FCARC DMR.
+    static let currentBuiltinsVersion = 3
 
     static let defaultsKey = "dsdNeoScanner.configurations"
 
@@ -128,8 +128,11 @@ nonisolated struct DsdNeoConfigurationSet: Codable, Equatable {
     func toppedUpWithBuiltins() -> DsdNeoConfigurationSet {
         guard (builtinsVersion ?? 1) < Self.currentBuiltinsVersion else { return self }
         var set = self
-        if !set.configurations.contains(where: { $0.name == Self.ucaDMR.name }) {
-            set.configurations.append(Self.ucaDMR)
+        // Each built-in is added by the version that introduced it, so one
+        // the user has since deleted stays deleted.
+        for (version, builtin) in [(2, Self.ucaDMR), (3, Self.fcarcDMR)]
+        where (builtinsVersion ?? 1) < version && !set.configurations.contains(where: { $0.name == builtin.name }) {
+            set.configurations.append(builtin)
         }
         set.builtinsVersion = Self.currentBuiltinsVersion
         return set
@@ -174,11 +177,26 @@ nonisolated struct DsdNeoConfigurationSet: Codable, Equatable {
         selectedControlChannelHz: 467_212_500,
         systemType: .dmrConventional)
 
+    /// Faulkner County Amateur Radio Club's Conway DMR repeaters (BrandMeister),
+    /// from the club's guide (last updated 2019, so check it still holds).
+    /// W5AUU-16 is a full-time UHF DMR repeater: output 443.750 MHz, input
+    /// 448.750, Color Code 1; its Conway FOX talkgroup 310508 is on slot 2 and
+    /// the other static talkgroups on slot 1. W5AUU-17 is a mixed-mode
+    /// analog/DMR repeater with output 145.210 MHz (analog tone 114.8 Hz).
+    /// A conventional system, so dsd-neo sits on the repeater's output.
+    static let fcarcDMR = DsdNeoConfiguration(
+        name: "FCARC DMR (W5AUU-16)",
+        controlChannels: [
+            (443_750_000, "W5AUU-16 UHF, CC1"), (145_210_000, "W5AUU-17 VHF, mixed mode"),
+        ].map { DsdNeoControlChannel(hz: $0.0, label: $0.1) },
+        selectedControlChannelHz: 443_750_000,
+        systemType: .dmrConventional)
+
     /// AWIN and CWIN, with the one `settings` is on active; its talkgroup
     /// list and dongle go to that configuration. When `settings` matches
     /// neither, it becomes a third configuration.
     static func seeded(matching settings: DsdNeoScannerSettings) -> DsdNeoConfigurationSet {
-        var set = DsdNeoConfigurationSet(configurations: [awin, cwin, ucaDMR],
+        var set = DsdNeoConfigurationSet(configurations: [awin, cwin, ucaDMR, fcarcDMR],
                                          builtinsVersion: currentBuiltinsVersion)
         guard settings.controlChannelHz > 0 else {
             set.activeID = set.configurations.first?.id

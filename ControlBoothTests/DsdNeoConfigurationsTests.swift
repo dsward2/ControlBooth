@@ -32,7 +32,7 @@ struct DsdNeoConfigurationsTests {
         settings.groupListPath = "/tmp/cwin-group.csv"
         settings.rtlSerial = "00000180"
         let set = DsdNeoConfigurationSet.seeded(matching: settings)
-        #expect(set.configurations.map(\.name) == ["AWIN", "CWIN", "UCA (DMR)"])
+        #expect(set.configurations.map(\.name) == ["AWIN", "CWIN", "UCA (DMR)", "FCARC DMR (W5AUU-16)"])
         #expect(set.active?.name == "CWIN")
         #expect(set.active?.groupListPath == "/tmp/cwin-group.csv")
         #expect(set.active?.rtlSerial == "00000180")
@@ -123,18 +123,28 @@ struct DsdNeoConfigurationsTests {
         let old = DsdNeoConfigurationSet(configurations: [DsdNeoConfigurationSet.awin, DsdNeoConfigurationSet.cwin])
         #expect(old.builtinsVersion == nil)
         let topped = old.toppedUpWithBuiltins()
-        #expect(topped.configurations.map(\.name) == ["AWIN", "CWIN", "UCA (DMR)"])
+        #expect(topped.configurations.map(\.name) == ["AWIN", "CWIN", "UCA (DMR)", "FCARC DMR (W5AUU-16)"])
         #expect(topped.builtinsVersion == DsdNeoConfigurationSet.currentBuiltinsVersion)
 
         // A user who deletes it keeps it deleted.
         var deleted = topped
         deleted.configurations.removeAll { $0.name == "UCA (DMR)" }
-        #expect(deleted.toppedUpWithBuiltins().configurations.count == 2)
+        #expect(deleted.toppedUpWithBuiltins().configurations.count == 3)
 
         // It is not added twice when a configuration of that name exists.
         var named = old
         named.configurations.append(DsdNeoConfigurationSet.ucaDMR)
-        #expect(named.toppedUpWithBuiltins().configurations.count == 3)
+        #expect(named.toppedUpWithBuiltins().configurations.count == 4)
+    }
+
+    @Test func fcarcIsABuiltInConventionalDmrSystemAddedToVersion2Sets() {
+        let fcarc = DsdNeoConfigurationSet.fcarcDMR
+        #expect(fcarc.effectiveSystemType == .dmrConventional)
+        #expect(fcarc.controlChannels.map(\.hz) == [443_750_000, 145_210_000])
+        #expect(fcarc.selectedControlChannelHz == 443_750_000)
+        let v2 = DsdNeoConfigurationSet(configurations: [DsdNeoConfigurationSet.awin, DsdNeoConfigurationSet.ucaDMR],
+                                        builtinsVersion: 2)
+        #expect(v2.toppedUpWithBuiltins().configurations.map(\.name) == ["AWIN", "UCA (DMR)", "FCARC DMR (W5AUU-16)"])
     }
 
     @Test func aSavedSetWithoutDmrFieldsStillDecodes() throws {
