@@ -44,7 +44,7 @@ struct DsdNeoConfigurationsTests {
         var settings = DsdNeoScannerSettings()
         settings.controlChannelHz = 771_243_750
         let set = DsdNeoConfigurationSet.seeded(matching: settings)
-        #expect(set.configurations.count == 4)
+        #expect(set.configurations.count == 5)
         #expect(set.active?.controlChannels.first?.hz == 771_243_750)
     }
 
