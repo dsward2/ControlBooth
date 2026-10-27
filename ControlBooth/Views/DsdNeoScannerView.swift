@@ -407,6 +407,11 @@ struct DsdNeoScannerView: View {
             isRunning: isRunning,
             onRename: { tg, name in updateOverrides { $0.setName(name, for: tg) } },
             onPolicy: { tg, policy in updateOverrides { $0.setPolicy(policy, for: tg) } },
+            onPolicyForAll: { policy in
+                let ids = DsdNeoTalkgroupRow.rows(list: groupList, ledger: ledger, overrides: overrides,
+                                                  encryptionLockout: saved.encryptionLockout).map(\.id)
+                updateOverrides { $0.setPolicy(policy, forAll: ids) }
+            },
             onRestart: { restartScanner() })
     }
 

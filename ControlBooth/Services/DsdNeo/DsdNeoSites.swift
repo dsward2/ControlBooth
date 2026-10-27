@@ -113,6 +113,11 @@ nonisolated struct DsdNeoTalkgroupOverrides: Codable, Equatable {
         }
     }
 
+    /// Gives every talkgroup in `talkgroups` the same policy.
+    mutating func setPolicy(_ policy: Policy, forAll talkgroups: some Sequence<Int>) {
+        for tg in talkgroups { setPolicy(policy, for: tg) }
+    }
+
     mutating func setName(_ name: String, for tg: Int) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         names[tg] = trimmed.isEmpty ? nil : trimmed

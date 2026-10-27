@@ -43,6 +43,7 @@ struct DsdNeoTalkgroupsView: View {
     let isRunning: Bool
     let onRename: (Int, String) -> Void
     let onPolicy: (Int, DsdNeoTalkgroupOverrides.Policy) -> Void
+    let onPolicyForAll: (DsdNeoTalkgroupOverrides.Policy) -> Void
     let onRestart: () -> Void
 
     @State private var search = ""
@@ -51,6 +52,7 @@ struct DsdNeoTalkgroupsView: View {
     // live-updating sort key would move rows out from under an edit.
     @State private var sortOrder = [KeyPathComparator(\DsdNeoTalkgroupRow.id)]
     @State private var editedNames: [Int: String] = [:]
+    @State private var pendingPolicyForAll: DsdNeoTalkgroupOverrides.Policy?
 
     private var visibleRows: [DsdNeoTalkgroupRow] {
         let query = search.trimmingCharacters(in: .whitespaces).lowercased()
@@ -68,6 +70,14 @@ struct DsdNeoTalkgroupsView: View {
                     .textFieldStyle(.roundedBorder)
                     .frame(maxWidth: 260)
                 Toggle("Heard Only", isOn: $heardOnly)
+                Menu("Set All Status") {
+                    ForEach(DsdNeoTalkgroupOverrides.Policy.allCases) { policy in
+                        Button(policy.rawValue) { pendingPolicyForAll = policy }
+                    }
+                }
+                .fixedSize()
+                .disabled(rows.isEmpty)
+                .help("Give every talkgroup the same status: Automatic, Always Allow or Locked Out")
                 Spacer()
                 Text("\(visibleRows.count) of \(rows.count)")
                     .font(.caption).foregroundStyle(.secondary)
@@ -129,6 +139,18 @@ struct DsdNeoTalkgroupsView: View {
                 .padding(8)
                 .background(.bar)
             }
+        }
+        .confirmationDialog("Set all \(rows.count) talkgroups to \(pendingPolicyForAll?.rawValue ?? "")?",
+                            isPresented: Binding(get: { pendingPolicyForAll != nil },
+                                                 set: { if !$0 { pendingPolicyForAll = nil } }),
+                            titleVisibility: .visible) {
+            Button("Set All", role: .destructive) {
+                if let policy = pendingPolicyForAll { onPolicyForAll(policy) }
+                pendingPolicyForAll = nil
+            }
+            Button("Cancel", role: .cancel) { pendingPolicyForAll = nil }
+        } message: {
+            Text("This replaces the status of every talkgroup in the list, including ones not heard yet, and includes those hidden by the search or Heard Only filters.")
         }
     }
 

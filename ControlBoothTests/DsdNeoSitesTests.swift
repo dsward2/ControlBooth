@@ -167,3 +167,17 @@ struct DsdNeoSitesTests {
         #expect(rows[53643]?.inList == false)
     }
 }
+
+@Suite struct TalkgroupSetAllTests {
+    @Test func setPolicyForAllReplacesEveryStatus() {
+        var overrides = DsdNeoTalkgroupOverrides()
+        overrides.setPolicy(.lockOut, for: 1)
+        overrides.setPolicy(.allow, for: 2)
+        overrides.setPolicy(.lockOut, forAll: [1, 2, 3])
+        #expect(overrides.lockedOut == [1, 2, 3] && overrides.alwaysAllowed.isEmpty)
+        overrides.setPolicy(.allow, forAll: [1, 2, 3])
+        #expect(overrides.alwaysAllowed == [1, 2, 3] && overrides.lockedOut.isEmpty)
+        overrides.setPolicy(.automatic, forAll: [1, 2, 3])
+        #expect(overrides.lockedOut.isEmpty && overrides.alwaysAllowed.isEmpty)
+    }
+}
