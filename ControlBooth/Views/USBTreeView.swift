@@ -80,6 +80,15 @@ struct USBTreeView: View {
             if !row.serial.isEmpty {
                 Text(row.serial).font(.caption.monospaced()).foregroundStyle(.secondary)
             }
+            if row.isHub {
+                Label(row.switchesPorts ? "per-port power" : "no per-port power",
+                      systemImage: row.switchesPorts ? "bolt.fill" : "bolt.slash")
+                    .font(.caption2)
+                    .foregroundStyle(row.switchesPorts ? Color.green : .secondary)
+                    .help(row.switchesPorts
+                          ? "uhubctl can switch each port of this hub on its own (ppps)."
+                          : "uhubctl can't switch this hub's ports individually (ganged, or not listed).")
+            }
             Spacer()
             if let port = row.port, let parent = row.parentPath {
                 Text("\(parent) port \(port)").font(.caption).foregroundStyle(.secondary)

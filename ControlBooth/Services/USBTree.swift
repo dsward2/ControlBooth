@@ -22,6 +22,9 @@ nonisolated struct USBTreeRow: Identifiable, Equatable, Codable {
     /// True when the hub it is plugged into can switch this port's power on
     /// its own (uhubctl's `ppps`), so this is something that can be power cycled.
     var selectable: Bool
+    /// True for a hub uhubctl lists as `ppps`: it can switch each of its own
+    /// ports' power. False for other hubs and for devices that aren't hubs.
+    var switchesPorts: Bool = false
 }
 
 /// Builds the USB tree from the IORegistry (`ioreg -a -p IOUSB -l`), marking
@@ -86,7 +89,8 @@ nonisolated enum USBTree {
             isHub: isHub, isRTLSDR: isRTL,
             parentPath: parent?.path, parentUSBID: parent?.usbID,
             port: parent == nil ? nil : Int(path.split(separator: ".").last ?? ""),
-            selectable: parent?.switchesPorts ?? false))
+            selectable: parent?.switchesPorts ?? false,
+            switchesPorts: isHub && hubs.contains { $0.location == path && $0.usbID == usbID && $0.switchesPerPort }))
         let hub = hubs.first { $0.location == path && $0.usbID == usbID }
         let me = Parent(path: path, usbID: usbID, switchesPorts: hub?.switchesPerPort ?? false)
         for child in children { walk(child, depth: depth + 1, parent: me, hubs: hubs, into: &rows) }
