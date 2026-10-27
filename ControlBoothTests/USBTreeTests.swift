@@ -70,6 +70,13 @@ struct USBTreeTests {
         #expect(USBTree.rows(fromIORegPlist: plist, hubs: []).allSatisfy { !$0.selectable })
     }
 
+    @Test func onlyPerPortSwitchableHubsAreFlagged() {
+        let rows = USBTree.rows(fromIORegPlist: plist, hubs: hubs)
+        // 2-2.1 is the only hub uhubctl lists as ppps; the others are ganged or devices.
+        #expect(rows.filter(\.switchesPorts).map(\.path) == ["2-2.1"])
+        #expect(USBTree.rows(fromIORegPlist: plist, hubs: []).allSatisfy { !$0.switchesPorts })
+    }
+
     @Test func rtlsdrsBelowAPortLosePowerWithIt() throws {
         let rows = USBTree.rows(fromIORegPlist: plist, hubs: hubs)
         let mtt = try #require(rows.first { $0.path == "2-2.1.1" })
