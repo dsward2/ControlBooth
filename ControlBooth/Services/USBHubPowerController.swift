@@ -19,6 +19,9 @@ nonisolated struct USBHubPowerStatus: Codable, Equatable {
     var messageIsError: Bool
     /// Included when asked for.
     var tree: [USBTreeRow]?
+    /// The tree path of the chosen port's device ("2-2.1.1"), empty when none
+    /// is chosen or it isn't in the tree.
+    var selectedPath: String = ""
 }
 
 /// The USB tree, the chosen hub port and power cycling it: shared by the USB
@@ -113,6 +116,19 @@ final class USBHubPowerController {
         settings.portDeviceID = row.usbID
     }
 
+    /// Chooses the tree row at `path` (as the 'select usb hub port' command
+    /// and AntennaHead's web page name it); throws when it isn't there or its
+    /// hub can't switch its power.
+    func select(path: String) throws {
+        guard let row = rows.first(where: { $0.path == path }) else {
+            throw USBHubPowerError.failed("No USB device is at \(path); refresh the tree.")
+        }
+        guard row.selectable else {
+            throw USBHubPowerError.failed("The hub above \(row.name) can't switch its port's power.")
+        }
+        select(row)
+    }
+
     /// Starts a power cycle of the chosen port in the background; throws when
     /// it can't be started. The outcome lands in `message`. `completion` runs
     /// on the main actor once it finishes.
@@ -150,6 +166,6 @@ final class USBHubPowerController {
             target: targetDescription,
             affectedRTLSDRs: affectedRTLSDRs.map { $0.serial.isEmpty ? $0.name : $0.serial },
             cycling: isCycling, message: message ?? "", messageIsError: messageIsError,
-            tree: includingTree ? rows : nil)
+            tree: includingTree ? rows : nil, selectedPath: selectedRow?.path ?? "")
     }
 }

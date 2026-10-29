@@ -77,6 +77,13 @@
             <result type="text" description="A JSON object (see USBHubPowerStatus)."/>
         </command>
 
+        <command name="select usb hub port" code="CBthUbSl"
+                 description="Choose the device at a USB tree path (the path field of usb tree) as what power cycle usb hub switches off and on.">
+            <cocoa class="UsbHubSelectCommand"/>
+            <access-group identifier="com.dsward.ControlBooth.pipelines"/>
+            <direct-parameter type="text" description="The tree path, such as 2-2.1.1."/>
+        </command>
+
         <command name="power cycle usb hub" code="CBthUbPc"
                  description="Switch the chosen USB hub port off and on, which powers off every device below it (including RTL-SDRs). Returns at once; the outcome is in usb hub status.">
             <cocoa class="UsbHubCycleCommand"/>
