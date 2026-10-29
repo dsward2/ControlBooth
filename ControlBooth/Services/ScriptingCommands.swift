@@ -360,6 +360,29 @@ nonisolated final class UsbTreeCommand: NSScriptCommand {
     }
 }
 
+/// 'select usb hub port': chooses the device at a tree path as what to power cycle.
+@objc(UsbHubSelectCommand)
+nonisolated final class UsbHubSelectCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        MainActor.assumeIsolated {
+            guard let controller = usbHubPower(reportingTo: self) else { return nil }
+            guard let path = directParameter as? String, !path.isEmpty else {
+                scriptErrorNumber = NSArgumentsWrongScriptError
+                scriptErrorString = "A USB tree path (such as 2-2.1.1) is required."
+                return nil
+            }
+            controller.refreshIfStale()
+            do {
+                try controller.select(path: path)
+            } catch {
+                scriptErrorNumber = NSInternalScriptError
+                scriptErrorString = "\(error)"
+            }
+            return nil
+        }
+    }
+}
+
 /// 'power cycle usb hub': starts cycling the chosen port and returns at once
 /// (the cycle takes several seconds); the outcome is in 'usb hub status'.
 @objc(UsbHubCycleCommand)
